@@ -83,6 +83,10 @@ Follow logs:
 docker compose logs backend -f
 ```
 
+> **Heads up:** The backend image build copies both `backend/Cargo.toml` and
+> `backend/Cargo.lock`. Ensure the lockfile exists in the repo (not ignored) before
+> running these commands on another machine, or Docker will fail with “Cargo.lock: not found”.
+
 ---
 
 ## Usage

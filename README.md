@@ -80,6 +80,10 @@ docker compose down -v           # teardown and wipe postgres volume
 The frontend image is built with `VITE_API_URL=http://backend:3000`; override via
 `frontend.build.args` in `docker-compose.yml` if you need a different API endpoint.
 
+> **Note:** The backend Docker build copies both `Cargo.toml` and `Cargo.lock`. Make sure
+> `backend/Cargo.lock` is present in your repository (don’t leave it Git-ignored) before
+> building on your deployment server; otherwise the image build will fail.
+
 ## API Endpoints
 
 ### Wentu Management
