@@ -21,6 +21,8 @@
   let participantName = '';
   let showJoinForm = true;
   let preferences = [];
+  let removedPreferences = [];
+  let lastAction = '';
   let stvResults = null;
   let copied = false;
 
@@ -36,6 +38,31 @@
     }
   }
 
+  function loadRemovedPreferences() {
+    try {
+      const stored = localStorage.getItem(`wentu-removed-${slug}`);
+      if (stored) {
+        removedPreferences = JSON.parse(stored);
+        preferences = preferences.filter(p =>
+          !removedPreferences.some(r => r.id === p.id)
+        );
+      }
+    } catch (err) {
+      console.error('Failed to load removed preferences:', err);
+    }
+  }
+
+  function saveRemovedPreferences() {
+    try {
+      localStorage.setItem(
+        `wentu-removed-${slug}`,
+        JSON.stringify(removedPreferences)
+      );
+    } catch (err) {
+      console.error('Failed to save removed preferences:', err);
+    }
+  }
+
   onMount(async () => {
     await loadWentu();
   });
@@ -46,7 +73,10 @@
       if (!res.ok) throw new Error('Wentu not found');
       wentu = await res.json();
       preferences = wentu.date_options.map((d, i) => ({ ...d, order: i }));
-      
+
+      // Load removed preferences from localStorage
+      loadRemovedPreferences();
+
       // Auto-login creator if we have creator credentials
       if (
         creatorName &&
@@ -126,6 +156,28 @@
     } catch (err) {
       console.error('Failed to load STV results:', err);
     }
+  }
+
+  function removePreference(id) {
+    const toRemove = preferences.find(p => p.id === id);
+    if (!toRemove) return;
+
+    preferences = preferences.filter(p => p.id !== id);
+    removedPreferences = [...removedPreferences, toRemove];
+    saveRemovedPreferences();
+
+    lastAction = `${toRemove.label} removed from preferences. ${preferences.length} dates remaining.`;
+  }
+
+  function restorePreference(id) {
+    const toRestore = removedPreferences.find(r => r.id === id);
+    if (!toRestore) return;
+
+    removedPreferences = removedPreferences.filter(r => r.id !== id);
+    preferences = [...preferences, toRestore];
+    saveRemovedPreferences();
+
+    lastAction = `${toRestore.label} restored to preferences.`;
   }
 
   function goHome() {
@@ -226,7 +278,51 @@
         {:else}
           <p class="text-text-secondary text-sm mb-4">Drag to order dates by preference</p>
         {/if}
-        <DragDropPreferences bind:items={preferences} disabled={deadlineReached} />
+        <DragDropPreferences
+          bind:items={preferences}
+          disabled={deadlineReached}
+          on:remove={(e) => removePreference(e.detail.id)}
+        />
+
+        {#if preferences.length === 0 && removedPreferences.length > 0}
+          <div class="bg-accent/10 border border-accent/30 rounded p-4 my-4">
+            <p class="text-text-secondary text-sm">
+              All dates removed. You can restore dates below or submit with no preferences.
+            </p>
+          </div>
+        {/if}
+
+        {#if removedPreferences.length > 0 && !deadlineReached}
+          <div class="mt-6 pt-6 border-t border-accent/20">
+            <h4 class="text-lg font-semibold text-text-secondary mb-3">
+              Removed dates ({removedPreferences.length})
+            </h4>
+            <div class="space-y-2">
+              {#each removedPreferences as removed}
+                <div class="bg-dark-bg/50 p-3 rounded flex items-center justify-between opacity-60">
+                  <div class="flex-1">
+                    <p class="text-text-secondary font-medium">{removed.label}</p>
+                    <p class="text-text-secondary/70 text-sm">
+                      {new Date(removed.start).toLocaleDateString()} –
+                      {new Date(removed.end).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <button
+                    on:click={() => restorePreference(removed.id)}
+                    class="btn-secondary text-sm px-3 py-1.5"
+                    aria-label="Restore {removed.label} to preferences"
+                  >
+                    Restore
+                  </button>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {lastAction}
+        </div>
 
         {#if error}
           <div class="flex items-center gap-2 text-error text-sm mt-4">

@@ -34,16 +34,16 @@
 
   <div class="grid gap-8 md:grid-cols-2">
     <!-- Create Section -->
-    <div class="card">
+    <div class="card flex flex-col">
       <h3 class="text-xl font-bold text-accent mb-4">Create new</h3>
       <p class="text-text-secondary mb-6">Set a title, pick date options, and share the code with others.</p>
-      <button class="btn-primary w-full" on:click={goCreate}>
+      <button class="btn-primary w-full mt-auto" on:click={goCreate}>
         Create Wentu
       </button>
     </div>
 
     <!-- Join Section -->
-    <div class="card">
+    <div class="card flex flex-col">
       <h3 class="text-xl font-bold text-accent mb-4">Join existing</h3>
       <p class="text-text-secondary mb-4">Enter a wentu code to vote.</p>
       <input
@@ -57,7 +57,7 @@
       {#if error}
         <p class="text-error text-sm mb-4">{error}</p>
       {/if}
-      <button class="btn-primary w-full" on:click={goView}>
+      <button class="btn-primary w-full mt-auto" on:click={goView}>
         Join
       </button>
     </div>
