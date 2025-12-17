@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --dark-bg: #2B1313;
+  --content-bg: #132B13;
+  --text-primary: #00FFBB;
+  --text-secondary: #7EFDD1;
+  --accent: #E2ABF8;
+  --success: #63E6BE;
+  --error: #FF909F;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ffb07a;
+}
+
+/* Focus ring color (high contrast) */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Button base styles */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded font-medium transition-colors focus:outline-offset-2 cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-dark-bg hover:bg-error;
+  }
+
+  .btn-secondary {
+    @apply btn bg-content-bg text-text-primary border border-accent/50 hover:bg-surface-hover;
+  }
+
+  .input {
+    @apply px-3 py-2 bg-content-bg border border-accent/30 rounded text-text-primary placeholder-text-secondary focus:border-accent focus:outline-none;
+  }
+
+  .card {
+    @apply bg-content-bg border border-accent/20 rounded-lg p-4;
+  }
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* Select dropdown styling */
+select.input {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23E2ABF8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  appearance: none;
+}
