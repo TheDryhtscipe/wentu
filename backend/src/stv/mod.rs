@@ -127,11 +127,7 @@ mod tests {
         let uuid1 = Uuid::nil();
         let uuid2 = Uuid::new_v4();
 
-        let preferences = vec![
-            vec![uuid1, uuid2],
-            vec![uuid1, uuid2],
-            vec![uuid2, uuid1],
-        ];
+        let preferences = vec![vec![uuid1, uuid2], vec![uuid1, uuid2], vec![uuid2, uuid1]];
         let options = vec![uuid1, uuid2];
 
         let result = calculate_stv(preferences, options);

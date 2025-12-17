@@ -3,12 +3,17 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use chrono::{DateTime, Utc};
+use serde_json::json;
 use sqlx::{PgPool, Row};
+use std::collections::HashSet;
 use uuid::Uuid;
-use chrono::Utc;
+use validator::Validate;
 
-use crate::models::{JoinWentuRequest, JoinWentuResponse, UpdatePreferencesRequest};
 use super::AppState;
+use crate::audit;
+use crate::models::wentu::SAFE_NAME_REGEX;
+use crate::models::{JoinWentuRequest, JoinWentuResponse, UpdatePreferencesRequest};
 
 /// Join an existing wentu
 pub async fn join_wentu(
@@ -16,6 +21,25 @@ pub async fn join_wentu(
     Path(slug): Path<String>,
     Json(req): Json<JoinWentuRequest>,
 ) -> Result<(StatusCode, Json<JoinWentuResponse>), StatusCode> {
+    // Validate input
+    req.validate().map_err(|e| {
+        tracing::warn!("Validation failed for join_wentu: {:?}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+
+    // Sanitize input
+    let name = req.name.trim().to_string();
+
+    if name.is_empty() {
+        tracing::warn!("Empty name after trimming");
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    if !SAFE_NAME_REGEX.is_match(&name) {
+        tracing::warn!("Invalid characters in participant name");
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
     // Fetch wentu
     let wentu_row = sqlx::query("SELECT id FROM wentus WHERE slug = $1")
         .bind(&slug)
@@ -27,29 +51,41 @@ pub async fn join_wentu(
     let wentu_id: Uuid = wentu_row.get(0);
     let participant_id = Uuid::new_v4();
     let participant_key = Uuid::new_v4().to_string();
+    let token_expires_at = Utc::now() + chrono::Duration::days(7);
 
     // Insert participant
     sqlx::query(
-        "INSERT INTO participants (id, wentu_id, name, participant_key, is_creator, joined_at)
-         VALUES ($1, $2, $3, $4, $5, $6)"
+        "INSERT INTO participants (id, wentu_id, name, participant_key, is_creator, joined_at, token_expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)",
     )
     .bind(participant_id)
     .bind(wentu_id)
-    .bind(&req.name)
+    .bind(&name)
     .bind(&participant_key)
     .bind(false)
     .bind(Utc::now())
+    .bind(token_expires_at)
     .execute(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(JoinWentuResponse {
-            participant_id,
-            participant_key,
-        }),
-    ))
+    let response = JoinWentuResponse {
+        participant_id,
+        participant_key: participant_key.clone(),
+    };
+
+    audit::log_action(
+        &state.db,
+        "JOIN_WENTU",
+        "participant",
+        Some(participant_id),
+        Some(&participant_key),
+        Some(json!({ "slug": slug, "name": name })),
+        true,
+    )
+    .await;
+
+    Ok((StatusCode::CREATED, Json(response)))
 }
 
 /// Update participant preferences
@@ -58,11 +94,31 @@ pub async fn update_preferences(
     Path(slug): Path<String>,
     Json(req): Json<UpdatePreferencesRequest>,
 ) -> Result<StatusCode, StatusCode> {
+    // Validate payload
+    req.validate().map_err(|e| {
+        tracing::warn!("Validation failed for update_preferences: {:?}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+
+    // Ensure rankings are unique and sequential enough
+    let mut seen_options = HashSet::new();
+    let mut seen_orders = HashSet::new();
+    for ranking in &req.rankings {
+        if !seen_options.insert(ranking.date_option_id) {
+            tracing::warn!("Duplicate date option in rankings");
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        if !seen_orders.insert(ranking.preference_order) {
+            tracing::warn!("Duplicate preference order in rankings");
+            return Err(StatusCode::BAD_REQUEST);
+        }
+    }
+
     // Verify participant and wentu exist
     let participant_row = sqlx::query(
-        "SELECT p.wentu_id FROM participants p
+        "SELECT p.wentu_id, p.token_expires_at FROM participants p
          JOIN wentus w ON p.wentu_id = w.id
-         WHERE p.id = $1 AND w.slug = $2 AND p.participant_key = $3"
+         WHERE p.id = $1 AND w.slug = $2 AND p.participant_key = $3",
     )
     .bind(req.participant_id)
     .bind(&slug)
@@ -73,6 +129,15 @@ pub async fn update_preferences(
     .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let wentu_id: Uuid = participant_row.get(0);
+    let token_expires_at: DateTime<Utc> = participant_row.get(1);
+
+    if token_expires_at < Utc::now() {
+        tracing::warn!(
+            "update_preferences blocked: token expired for participant {}",
+            req.participant_id
+        );
+        return Err(StatusCode::UNAUTHORIZED);
+    }
 
     // Delete old rankings
     sqlx::query("DELETE FROM rankings WHERE participant_id = $1")
@@ -82,10 +147,10 @@ pub async fn update_preferences(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Insert new rankings
-    for ranking in req.rankings {
+    for ranking in &req.rankings {
         sqlx::query(
             "INSERT INTO rankings (participant_id, date_option_id, preference_order)
-             VALUES ($1, $2, $3)"
+             VALUES ($1, $2, $3)",
         )
         .bind(req.participant_id)
         .bind(ranking.date_option_id)
@@ -94,6 +159,17 @@ pub async fn update_preferences(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
+
+    audit::log_action(
+        &state.db,
+        "UPDATE_PREFERENCES",
+        "participant",
+        Some(req.participant_id),
+        Some(&req.participant_key),
+        Some(json!({ "slug": slug, "rankings": req.rankings.len() })),
+        true,
+    )
+    .await;
 
     Ok(StatusCode::OK)
 }

@@ -4,6 +4,7 @@
   import DragDropPreferences from '../components/DragDropPreferences.svelte';
   import STVResults from '../components/STVResults.svelte';
   import ExpiryTimer from '../components/ExpiryTimer.svelte';
+  import { api } from '../lib/api.js';
 
   const dispatch = createEventDispatcher();
 
@@ -69,9 +70,7 @@
 
   async function loadWentu() {
     try {
-      const res = await fetch(`http://127.0.0.1:3000/api/wentu/${slug}`);
-      if (!res.ok) throw new Error('Wentu not found');
-      wentu = await res.json();
+      wentu = await api.get(`/api/wentu/${slug}`);
       preferences = wentu.date_options.map((d, i) => ({ ...d, order: i }));
 
       // Load removed preferences from localStorage
@@ -104,15 +103,7 @@
     }
 
     try {
-      const res = await fetch(`http://127.0.0.1:3000/api/wentu/${slug}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: participantName }),
-      });
-
-      if (!res.ok) throw new Error('Failed to join');
-
-      const data = await res.json();
+      const data = await api.post(`/api/wentu/${slug}/join`, { name: participantName });
       participantId = data.participant_id;
       participantKey = data.participant_key;
       showJoinForm = false;
@@ -128,18 +119,12 @@
         preference_order: idx + 1,
       }));
 
-      const res = await fetch(`http://127.0.0.1:3000/api/wentu/${slug}/preferences`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          participant_id: participantId,
-          participant_key: participantKey,
-          rankings,
-        }),
+      await api.post(`/api/wentu/${slug}/preferences`, {
+        participant_id: participantId,
+        participant_key: participantKey,
+        rankings,
       });
 
-      if (!res.ok) throw new Error('Failed to submit preferences');
-      
       error = '';
       await loadSTVResults();
     } catch (err) {
@@ -149,10 +134,7 @@
 
   async function loadSTVResults() {
     try {
-      const res = await fetch(`http://127.0.0.1:3000/api/wentu/${slug}/stv-results`);
-      if (res.ok) {
-        stvResults = await res.json();
-      }
+      stvResults = await api.get(`/api/wentu/${slug}/stv-results`);
     } catch (err) {
       console.error('Failed to load STV results:', err);
     }

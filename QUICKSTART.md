@@ -1,6 +1,6 @@
 # Wentu - Quick Start Guide
 
-## One-Time Setup (5 minutes)
+## One-Time Setup
 
 ### 1. Install Dependencies
 ```bash
@@ -32,7 +32,7 @@ cd ../frontend
 npm install
 ```
 
-Done! ✅
+You're done!
 
 ---
 
@@ -56,6 +56,31 @@ npm run dev
 ```bash
 open http://127.0.0.1:5173
 # Or just visit that URL
+```
+
+---
+
+### Option B: Docker Compose (all services)
+
+```bash
+docker compose up -d --build
+```
+
+- Backend API → http://localhost:3000  
+- Frontend (nginx) → http://localhost:4173  
+- Database exposed on localhost:5434 (volume `wentu_postgres_data`)
+
+Tear down:
+
+```bash
+docker compose down          # stop containers, keep data
+docker compose down -v       # stop and delete postgres volume
+```
+
+Follow logs:
+
+```bash
+docker compose logs backend -f
 ```
 
 ---
@@ -84,6 +109,7 @@ Run all API tests:
 ```bash
 bash test_api.sh
 ```
+The script respects backend write limits automatically (set `WRITE_DELAY=1` if you need a slower cadence) and prints "(empty response)" for endpoints that purposely return no body.
 
 Run Rust unit tests:
 ```bash
@@ -223,10 +249,10 @@ Full docs: See `PLAN.md` and `IMPLEMENTATION_SUMMARY.md`
 ## Next Steps
 
 - **Single Transferable Vote**: Read about it [here](https://en.wikipedia.org/wiki/Single_transferable_vote)
-- **Deploy**: See `IMPLEMENTATION_SUMMARY.md` Phase 5
+- **Deploy**: UPDATE THIS
 - **Contribute**: Fork the repo, submit PRs
 - **Feedback**: Create issues on GitHub
 
 ---
 
-Enjoy meeting scheduling! 🎉
+Praxis makes perfect.

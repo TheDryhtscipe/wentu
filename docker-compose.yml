@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -9,7 +7,7 @@ services:
       POSTGRES_PASSWORD: wentu
       POSTGRES_DB: wentu
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,6 +15,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://wentu:wentu@postgres:5432/wentu
+      ALLOWED_ORIGINS: http://localhost:4173,http://127.0.0.1:4173,http://frontend:4173
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "4173:4173"
 
 volumes:
   postgres_data:

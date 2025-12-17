@@ -1,6 +1,6 @@
 # Wentu - Meeting Scheduler with STV Voting
 
-A lightweight, ephemeral web app for scheduling meetings using Single Transferable Vote (STV). No accounts, no persistence—everything expires.
+A lightweight, ephemeral web app for scheduling meetings using Single Transferable Vote (STV). No accounts, no data persistence, no third party storage.
 
 ## Features
 
@@ -56,6 +56,30 @@ npm run dev
 # App runs on http://127.0.0.1:5173
 ```
 
+### Docker Compose Staging Stack
+
+To spin up PostgreSQL + backend + frontend with a single command:
+
+```bash
+docker compose up -d --build
+```
+
+- Backend: http://localhost:3000  
+- Frontend (nginx serving the Vite build): http://localhost:4173  
+- Database: exposed on localhost:5434 (volume persisted as `wentu_postgres_data`)
+
+Helpful commands:
+
+```bash
+docker compose ps                # check container status
+docker compose logs backend -f   # follow backend logs
+docker compose down              # stop everything, keep volume
+docker compose down -v           # teardown and wipe postgres volume
+```
+
+The frontend image is built with `VITE_API_URL=http://backend:3000`; override via
+`frontend.build.args` in `docker-compose.yml` if you need a different API endpoint.
+
 ## API Endpoints
 
 ### Wentu Management
@@ -103,8 +127,8 @@ preference_order: Int (1 = first choice)
 ## STV Algorithm
 
 1. Count first preferences for each date
-2. Set quota: `(total_votes / 2) + 1` (majority for 1 seat)
-3. If winner reaches quota, done
+2. Set quota: `(total_votes / 2) + 1`
+3. If option reaches quota, that option is winner
 4. Eliminate lowest-voted date, redistribute votes
 5. Repeat until winner found
 
@@ -139,6 +163,14 @@ cd backend
 cargo test
 ```
 
+To exercise the full HTTP flow, run the root-level smoke test:
+
+```bash
+bash test_api.sh
+```
+
+The script now enforces rate-limit friendly pauses (`WRITE_DELAY` env var, default 0.8s) and gracefully handles endpoints that return empty bodies (e.g., preference updates, closing a wentu).
+
 ### Building for Production
 ```bash
 # Backend
@@ -155,6 +187,8 @@ Backend: `.env` file with `DATABASE_URL=postgres://...`
 
 ## Roadmap
 
+None of this is definite, but these were stretch goals in early design docs & may be added later. Consider complexity to be directly correlated with likelihood of development: the more complex the feature, the less likely it'll arrive soon.
+
 - [ ] WebSocket support for live vote updates
 - [ ] Export results as calendar invite
 - [ ] Multi-language support
@@ -170,8 +204,4 @@ Backend: `.env` file with `DATABASE_URL=postgres://...`
 
 ## License
 
-MIT
-
----
-
-**Note**: Wentu is designed for simplicity and ephemeral data. It's not suitable for sensitive information or long-term record-keeping. Everything expires.
+Unlicense

@@ -6,8 +6,8 @@ use axum::{
 use sqlx::{FromRow, Row};
 use uuid::Uuid;
 
-use crate::stv::{calculate_stv, STVResult};
 use super::AppState;
+use crate::stv::{calculate_stv, STVResult};
 
 #[derive(FromRow)]
 struct ParticipantPreferences {
@@ -43,7 +43,7 @@ pub async fn get_stv_results(
 
     // Get all date options in order
     let date_options = sqlx::query_as::<_, DateOptionInfo>(
-        "SELECT id FROM date_ranges WHERE wentu_id = $1 ORDER BY sort_order"
+        "SELECT id FROM date_ranges WHERE wentu_id = $1 ORDER BY sort_order",
     )
     .bind(wentu_id)
     .fetch_all(&state.db)
@@ -58,7 +58,7 @@ pub async fn get_stv_results(
         "SELECT participant_id, date_option_id, preference_order 
          FROM rankings 
          WHERE date_option_id IN (SELECT id FROM date_ranges WHERE wentu_id = $1)
-         ORDER BY participant_id, preference_order"
+         ORDER BY participant_id, preference_order",
     )
     .bind(wentu_id)
     .fetch_all(&state.db)
@@ -66,7 +66,8 @@ pub async fn get_stv_results(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Build voter preferences structure (participant -> ordered date options)
-    let mut voter_prefs: std::collections::HashMap<Uuid, Vec<Uuid>> = std::collections::HashMap::new();
+    let mut voter_prefs: std::collections::HashMap<Uuid, Vec<Uuid>> =
+        std::collections::HashMap::new();
     for pref in preferences {
         voter_prefs
             .entry(pref.participant_id)

@@ -4,6 +4,7 @@
   import Calendar from '../components/Calendar.svelte';
   import TimeSlotConfigurator from '../components/TimeSlotConfigurator.svelte';
   import TimezonePicker from '../components/TimezonePicker.svelte';
+  import { api } from '../lib/api.js';
 
   const dispatch = createEventDispatcher();
 
@@ -155,20 +156,8 @@
         day_time_slots: enableTimeSlots ? dayTimeSlots : null,
       };
       console.log('Creating wentu with:', body);
-      
-      const response = await fetch('http://127.0.0.1:3000/api/wentu', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        console.error('Create failed:', response.status, errData);
-        throw new Error(errData.error || 'Failed to create wentu');
-      }
-
-      const data = await response.json();
+      const data = await api.post('/api/wentu', body);
       console.log('Wentu created:', data);
       dispatch('navigate', { 
         page: 'view', 

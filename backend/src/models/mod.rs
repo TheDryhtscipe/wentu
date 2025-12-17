@@ -1,7 +1,9 @@
-pub mod wentu;
 pub mod participant;
 pub mod ranking;
+pub mod wentu;
 
-pub use wentu::{Wentu, DateRange, WentuStatus, CreateWentuRequest, CreateWentuResponse};
-pub use participant::{Participant, JoinWentuRequest, JoinWentuResponse};
+pub use participant::{JoinWentuRequest, JoinWentuResponse, Participant};
 pub use ranking::{Ranking, UpdatePreferencesRequest};
+pub use wentu::{
+    CloseWentuRequest, CreateWentuRequest, CreateWentuResponse, DateRange, Wentu, WentuStatus,
+};
