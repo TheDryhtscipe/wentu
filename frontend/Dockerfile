@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6
 
 ARG NODE_VERSION=20
-ARG VITE_API_URL=http://backend:3000
+ARG VITE_API_URL=
 
 FROM node:${NODE_VERSION}-alpine AS build
 WORKDIR /app

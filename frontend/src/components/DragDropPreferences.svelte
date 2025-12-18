@@ -32,17 +32,17 @@
   }}
   on:consider={handleConsider}
   on:finalize={handleFinalize}
-  class="space-y-3"
+  class="space-y-2 sm:space-y-3"
 >
   {#each items as item, idx (item.id)}
-    <div animate:flip={{ duration: 200 }} class="bg-dark-bg p-4 rounded flex items-center justify-between gap-4 cursor-move">
-      <div class="flex items-center gap-4 flex-1">
-        <div class="bg-accent text-dark-bg w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0">
+    <div animate:flip={{ duration: 200 }} class="bg-dark-bg p-3 sm:p-4 rounded flex items-center justify-between gap-3 sm:gap-4 cursor-move">
+      <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+        <div class="bg-accent text-dark-bg w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-sm sm:text-base flex-shrink-0">
           {idx + 1}
         </div>
-        <div class="flex-1">
-          <p class="text-text-primary font-medium">{item.label}</p>
-          <p class="text-text-secondary text-sm">
+        <div class="flex-1 min-w-0">
+          <p class="text-text-primary font-medium text-sm sm:text-base truncate">{item.label}</p>
+          <p class="text-text-secondary text-xs sm:text-sm">
             {new Date(item.start).toLocaleDateString()} – {new Date(item.end).toLocaleDateString()}
           </p>
         </div>
@@ -50,7 +50,7 @@
       {#if !disabled}
         <button
           on:click|stopPropagation={() => handleRemove(item.id)}
-          class="text-error hover:text-accent ml-4 px-3 py-1 bg-error/10 rounded transition-colors focus:outline-offset-2"
+          class="text-error hover:text-accent px-2 sm:px-3 py-1 bg-error/10 rounded transition-colors focus:outline-offset-2 flex-shrink-0"
           aria-label="Remove {item.label} from preferences"
           type="button"
         >

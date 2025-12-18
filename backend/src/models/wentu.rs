@@ -56,9 +56,6 @@ pub struct CreateWentuRequest {
     pub date_range_end: DateTime<Utc>,
     pub pref_deadline: DateTime<Utc>,
 
-    #[validate(range(min = 1, max = 365, message = "Expiration must be 1-365 days"))]
-    pub expires_in_days: i32,
-
     // Time slot configuration
     pub enable_time_slots: Option<bool>,
     pub timezone: Option<String>,

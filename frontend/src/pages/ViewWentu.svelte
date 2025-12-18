@@ -5,6 +5,7 @@
   import STVResults from '../components/STVResults.svelte';
   import ExpiryTimer from '../components/ExpiryTimer.svelte';
   import { api } from '../lib/api.js';
+  import { addTrackedWentu, getTrackedWentu } from '../lib/wentuTracker.js';
 
   const dispatch = createEventDispatcher();
 
@@ -31,7 +32,8 @@
 
   async function copyToClipboard() {
     try {
-      await navigator.clipboard.writeText(wentu.slug);
+      const url = `${window.location.origin}/wentu/${wentu.slug}`;
+      await navigator.clipboard.writeText(url);
       copied = true;
       setTimeout(() => copied = false, 2000);
     } catch (err) {
@@ -89,6 +91,20 @@
         participantKey = creatorParticipantKey;
         showJoinForm = false;
       }
+
+      const tracked = getTrackedWentu(slug);
+      if (tracked) {
+        if (tracked.name && !participantName) {
+          participantName = tracked.name;
+        }
+        if (tracked.participantId && tracked.participantKey) {
+          participantId = tracked.participantId;
+          participantKey = tracked.participantKey;
+          showJoinForm = false;
+        } else if (tracked.name && !participantId && !participantKey) {
+          await joinWentu({ silent: true });
+        }
+      }
     } catch (err) {
       error = err.message;
     } finally {
@@ -96,9 +112,11 @@
     }
   }
 
-  async function joinWentu() {
+  async function joinWentu({ silent } = {}) {
     if (!participantName.trim()) {
-      error = 'Please enter your name';
+      if (!silent) {
+        error = 'Please enter your name';
+      }
       return;
     }
 
@@ -106,9 +124,15 @@
       const data = await api.post(`/api/wentu/${slug}/join`, { name: participantName });
       participantId = data.participant_id;
       participantKey = data.participant_key;
+
+      // Track participation in localStorage
+      addTrackedWentu(slug, wentu.title, 'participant', participantName, participantId, participantKey);
+
       showJoinForm = false;
     } catch (err) {
-      error = err.message;
+      if (!silent) {
+        error = err.message;
+      }
     }
   }
 
@@ -128,6 +152,25 @@
       error = '';
       await loadSTVResults();
     } catch (err) {
+      if (err.message && err.message.startsWith('HTTP 401') && participantName.trim()) {
+        try {
+          await joinWentu({ silent: true });
+          await api.post(`/api/wentu/${slug}/preferences`, {
+            participant_id: participantId,
+            participant_key: participantKey,
+            rankings: preferences.map((p, idx) => ({
+              date_option_id: p.id,
+              preference_order: idx + 1,
+            })),
+          });
+          error = '';
+          await loadSTVResults();
+          return;
+        } catch (retryErr) {
+          error = retryErr.message;
+          return;
+        }
+      }
       error = err.message;
     }
   }
@@ -167,62 +210,66 @@
   }
 </script>
 
-<div class="max-w-4xl mx-auto">
-  <button class="mb-6 text-accent hover:underline flex items-center gap-1" on:click={goHome}>
+<div class="max-w-4xl mx-auto px-4 sm:px-0">
+  <button class="mb-4 sm:mb-6 text-accent hover:underline flex items-center gap-1 text-sm sm:text-base" on:click={goHome}>
     <ArrowLeft size={16} />
     Back to home
   </button>
 
   {#if loading}
     <div class="card text-center">
-      <div class="flex items-center justify-center gap-2 text-text-secondary">
+      <div class="flex items-center justify-center gap-2 text-text-secondary text-sm sm:text-base">
         <Loader2 size={20} class="animate-spin" />
         <p>Loading...</p>
       </div>
     </div>
   {:else if error && !wentu}
     <div class="card bg-error/10 border-error/50">
-      <div class="flex items-center gap-2 text-error">
-        <AlertCircle size={20} />
+      <div class="flex items-center gap-2 text-error text-sm">
+        <AlertCircle size={20} class="flex-shrink-0" />
         <p>{error}</p>
       </div>
     </div>
   {:else if wentu}
-    <div class="card mb-6">
-      <div class="flex justify-between items-start mb-4">
-        <div>
-          <h2 class="text-3xl font-bold text-accent">{wentu.title}</h2>
+    <div class="card mb-4 sm:mb-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start mb-3 sm:mb-4 gap-3 sm:gap-0">
+        <div class="flex-1">
+          <h2 class="text-2xl sm:text-3xl font-bold text-accent">{wentu.title}</h2>
           {#if wentu.description}
-            <p class="text-text-secondary mt-2">{wentu.description}</p>
+            <p class="text-text-secondary text-sm sm:text-base mt-2">{wentu.description}</p>
           {/if}
-          <p class="text-text-secondary text-sm mt-2">Created by {wentu.creator_name}</p>
+          <p class="text-text-secondary text-xs sm:text-sm mt-2">Created by {wentu.creator_name}</p>
         </div>
         <ExpiryTimer expiresAt={new Date(wentu.expires_at)} />
       </div>
 
-      <div class="bg-dark-bg rounded p-3 mb-4">
-        <p class="text-text-secondary text-sm mb-2">Share code:</p>
-        <div class="flex items-center justify-between gap-3">
-          <p class="text-accent font-mono text-lg">{wentu.slug}</p>
+      <div class="bg-dark-bg rounded p-3 mb-3 sm:mb-4">
+        <p class="text-text-secondary text-xs sm:text-sm mb-2">Share this link with participants:</p>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <div class="flex-1 bg-content-bg rounded p-2 sm:p-3 border border-accent/30">
+            <p class="text-accent font-mono text-sm sm:text-base break-all select-all">{window.location.origin}/wentu/{wentu.slug}</p>
+          </div>
           <button
             on:click={copyToClipboard}
-            class="btn-secondary px-3 py-2 flex items-center gap-2 text-sm"
-            title="Copy to clipboard"
+            class="btn-secondary px-3 py-2 flex items-center justify-center gap-2 text-sm flex-shrink-0"
+            title="Copy link to clipboard"
           >
             {#if copied}
               <CheckCircle size={16} class="text-success" />
               <span class="text-success">Copied!</span>
             {:else}
               <Copy size={16} />
-              Copy
+              <span>Copy link</span>
             {/if}
           </button>
         </div>
       </div>
 
-      <p class="text-text-secondary text-sm">Status: <span class="text-accent font-medium">{wentu.status}</span></p>
-      
-      <div class="grid grid-cols-2 gap-4 mt-4 text-sm">
+      <p class="text-text-secondary text-xs sm:text-sm mb-3 sm:mb-4">
+        Status: <span class="text-accent font-medium">{wentu.status}</span>
+      </p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
         <div>
           <p class="text-text-secondary">Pref. deadline:</p>
           <p class="text-accent">{new Date(wentu.pref_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
@@ -235,30 +282,30 @@
     </div>
 
     {#if showJoinForm}
-      <div class="card mb-6">
-        <h3 class="text-xl font-bold text-accent mb-4">Join as participant</h3>
+      <div class="card mb-4 sm:mb-6">
+        <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Join as participant</h3>
         <input
-          class="input w-full mb-4"
+          class="input w-full mb-3 sm:mb-4"
           type="text"
           placeholder="Your name"
           bind:value={participantName}
           aria-label="Your name"
         />
         {#if error}
-          <p class="text-error text-sm mb-4">{error}</p>
+          <p class="text-error text-xs sm:text-sm mb-3 sm:mb-4">{error}</p>
         {/if}
         <button class="btn-primary w-full" on:click={joinWentu}>Join Wentu</button>
       </div>
     {:else}
-      <div class="card mb-6">
-        <h3 class="text-xl font-bold text-accent mb-4">Your preferences</h3>
+      <div class="card mb-4 sm:mb-6">
+        <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Your preferences</h3>
         {#if deadlineReached}
-          <div class="flex items-center gap-2 text-error text-sm mb-4">
-            <Lock size={16} />
+          <div class="flex items-center gap-2 text-error text-xs sm:text-sm mb-3 sm:mb-4">
+            <Lock size={16} class="flex-shrink-0" />
             <p>Preference deadline has passed. You can no longer edit.</p>
           </div>
         {:else}
-          <p class="text-text-secondary text-sm mb-4">Drag to order dates by preference</p>
+          <p class="text-text-secondary text-xs sm:text-sm mb-3 sm:mb-4">Drag to order dates by preference</p>
         {/if}
         <DragDropPreferences
           bind:items={preferences}
@@ -267,31 +314,31 @@
         />
 
         {#if preferences.length === 0 && removedPreferences.length > 0}
-          <div class="bg-accent/10 border border-accent/30 rounded p-4 my-4">
-            <p class="text-text-secondary text-sm">
+          <div class="bg-accent/10 border border-accent/30 rounded p-3 sm:p-4 my-3 sm:my-4">
+            <p class="text-text-secondary text-xs sm:text-sm">
               All dates removed. You can restore dates below or submit with no preferences.
             </p>
           </div>
         {/if}
 
         {#if removedPreferences.length > 0 && !deadlineReached}
-          <div class="mt-6 pt-6 border-t border-accent/20">
-            <h4 class="text-lg font-semibold text-text-secondary mb-3">
+          <div class="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-accent/20">
+            <h4 class="text-base sm:text-lg font-semibold text-text-secondary mb-3">
               Removed dates ({removedPreferences.length})
             </h4>
             <div class="space-y-2">
               {#each removedPreferences as removed}
-                <div class="bg-dark-bg/50 p-3 rounded flex items-center justify-between opacity-60">
-                  <div class="flex-1">
-                    <p class="text-text-secondary font-medium">{removed.label}</p>
-                    <p class="text-text-secondary/70 text-sm">
+                <div class="bg-dark-bg/50 p-3 rounded flex items-center justify-between opacity-60 gap-2">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-text-secondary font-medium text-sm sm:text-base truncate">{removed.label}</p>
+                    <p class="text-text-secondary/70 text-xs sm:text-sm">
                       {new Date(removed.start).toLocaleDateString()} –
                       {new Date(removed.end).toLocaleDateString()}
                     </p>
                   </div>
                   <button
                     on:click={() => restorePreference(removed.id)}
-                    class="btn-secondary text-sm px-3 py-1.5"
+                    class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 flex-shrink-0"
                     aria-label="Restore {removed.label} to preferences"
                   >
                     Restore
@@ -307,14 +354,14 @@
         </div>
 
         {#if error}
-          <div class="flex items-center gap-2 text-error text-sm mt-4">
-            <AlertCircle size={16} />
+          <div class="flex items-center gap-2 text-error text-xs sm:text-sm mt-3 sm:mt-4">
+            <AlertCircle size={16} class="flex-shrink-0" />
             <p>{error}</p>
           </div>
         {/if}
 
         {#if !deadlineReached}
-          <button class="btn-primary w-full mt-4" on:click={submitPreferences}>
+          <button class="btn-primary w-full mt-3 sm:mt-4" on:click={submitPreferences}>
             Submit preferences
           </button>
         {/if}

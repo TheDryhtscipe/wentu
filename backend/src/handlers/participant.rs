@@ -49,6 +49,55 @@ pub async fn join_wentu(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let wentu_id: Uuid = wentu_row.get(0);
+
+    let existing = sqlx::query(
+        "SELECT p.id, p.participant_key, p.token_expires_at, COUNT(r.id) AS ranking_count
+         FROM participants p
+         LEFT JOIN rankings r ON r.participant_id = p.id
+         WHERE p.wentu_id = $1 AND LOWER(p.name) = LOWER($2)
+         GROUP BY p.id
+         ORDER BY ranking_count DESC, p.joined_at ASC
+         LIMIT 1",
+    )
+    .bind(wentu_id)
+    .bind(&name)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if let Some(row) = existing {
+        let participant_id: Uuid = row.get("id");
+        let participant_key: String = row.get("participant_key");
+        let token_expires_at: DateTime<Utc> = row.get("token_expires_at");
+
+        if token_expires_at < Utc::now() {
+            let refreshed = Utc::now() + chrono::Duration::days(7);
+            sqlx::query("UPDATE participants SET token_expires_at = $1 WHERE id = $2")
+                .bind(refreshed)
+                .bind(participant_id)
+                .execute(&state.db)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        }
+
+        let response = JoinWentuResponse {
+            participant_id,
+            participant_key: participant_key.clone(),
+        };
+
+        audit::log_action(
+            &state.db,
+            "JOIN_WENTU",
+            "participant",
+            Some(participant_id),
+            Some(&participant_key),
+            Some(json!({ "slug": slug, "name": name })),
+            true,
+        )
+        .await;
+
+        return Ok((StatusCode::OK, Json(response)));
+    }
     let participant_id = Uuid::new_v4();
     let participant_key = Uuid::new_v4().to_string();
     let token_expires_at = Utc::now() + chrono::Duration::days(7);

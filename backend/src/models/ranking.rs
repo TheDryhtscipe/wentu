@@ -14,7 +14,7 @@ pub struct UpdatePreferencesRequest {
     pub participant_id: Uuid,
     #[validate(length(min = 1, max = 255, message = "Participant key required"))]
     pub participant_key: String,
-    #[validate(length(min = 1, max = 10, message = "Provide 1-10 rankings"))]
+    #[validate(length(min = 1, max = 200, message = "Provide 1-200 rankings"))]
     #[validate(nested)]
     pub rankings: Vec<CreateRanking>,
 }
@@ -22,6 +22,6 @@ pub struct UpdatePreferencesRequest {
 #[derive(Debug, Deserialize, Serialize, Validate)]
 pub struct CreateRanking {
     pub date_option_id: Uuid,
-    #[validate(range(min = 1, max = 10, message = "Preference order must be 1-10"))]
+    #[validate(range(min = 1, max = 200, message = "Preference order must be 1-200"))]
     pub preference_order: i32,
 }

@@ -91,7 +91,8 @@ pub async fn create_wentu(
     let creator_participant_key = Uuid::new_v4().to_string();
     let slug = format!("{}-{}", slugify(&title), &creator_key[..8]);
 
-    let expires_at = Utc::now() + chrono::Duration::days(req.expires_in_days as i64);
+    // Wentu expires 7 days AFTER the voting deadline, not after creation
+    let expires_at = req.pref_deadline + chrono::Duration::days(7);
 
     tracing::info!("Creating wentu: {} with slug: {}", wentu_id, slug);
 
@@ -125,11 +126,24 @@ pub async fn create_wentu(
         let tz = Tz::from_str(tz_str).map_err(|_| StatusCode::BAD_REQUEST)?;
         let time_slots = req.day_time_slots.as_ref().ok_or(StatusCode::BAD_REQUEST)?;
 
-        let mut current_date = req.date_range_start;
+        if time_slots.is_empty() {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        let min_date = req.date_range_start.date_naive();
+        let max_date = req.date_range_end.date_naive();
+
+        let mut date_keys: Vec<String> = time_slots.keys().cloned().collect();
+        date_keys.sort();
+
         let mut sort_order = 0;
 
-        while current_date <= req.date_range_end {
-            let date_key = current_date.format("%Y-%m-%d").to_string();
+        for date_key in date_keys {
+            let date = chrono::NaiveDate::parse_from_str(&date_key, "%Y-%m-%d")
+                .map_err(|_| StatusCode::BAD_REQUEST)?;
+            if date < min_date || date > max_date {
+                return Err(StatusCode::BAD_REQUEST);
+            }
 
             // Get slots for this day (validation: must exist and not be empty)
             let slots = time_slots.get(&date_key).ok_or(StatusCode::BAD_REQUEST)?;
@@ -148,10 +162,9 @@ pub async fn create_wentu(
                 let minute: u32 = parts[1].parse().map_err(|_| StatusCode::BAD_REQUEST)?;
 
                 // Create naive datetime in specified timezone
-                let naive_date = current_date.date_naive();
                 let naive_time = chrono::NaiveTime::from_hms_opt(hour, minute, 0)
                     .ok_or(StatusCode::BAD_REQUEST)?;
-                let naive_dt = chrono::NaiveDateTime::new(naive_date, naive_time);
+                let naive_dt = chrono::NaiveDateTime::new(date, naive_time);
 
                 // Convert to UTC for storage
                 let tz_dt = tz
@@ -164,7 +177,7 @@ pub async fn create_wentu(
                 // Format label: "Mon, Dec 15 @ 10:00 AM"
                 let label = format!(
                     "{} @ {}",
-                    current_date.format("%a, %b %d"),
+                    date.format("%a, %b %d"),
                     start_utc.with_timezone(&tz).format("%I:%M %p")
                 );
 
@@ -190,8 +203,6 @@ pub async fn create_wentu(
 
                 sort_order += 1;
             }
-
-            current_date = current_date + Duration::days(1);
         }
     } else {
         // Full-day mode: existing logic

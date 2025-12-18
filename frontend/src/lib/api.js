@@ -1,8 +1,17 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
+const API_URL = import.meta.env.VITE_API_URL || '';
+const BASE_URL = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+
+function buildUrl(path) {
+  if (!BASE_URL) return path;
+  if (BASE_URL.endsWith('/api') && path.startsWith('/api/')) {
+    return `${BASE_URL}${path.slice(4)}`;
+  }
+  return `${BASE_URL}${path}`;
+}
 
 export const api = {
   async get(path) {
-    const response = await fetch(`${API_URL}${path}`);
+    const response = await fetch(buildUrl(path));
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -12,7 +21,7 @@ export const api = {
   },
 
   async post(path, body) {
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await fetch(buildUrl(path), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

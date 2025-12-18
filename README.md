@@ -10,6 +10,7 @@ A lightweight, ephemeral web app for scheduling meetings using Single Transferab
 - **STV voting**: Fair date selection algorithm eliminates lowest-voted options
 - **Live expiry**: All data deleted after 7 days (default)
 - **Dark red theme**: High-contrast design for accessibility
+- **Mobile-responsive**: Full touch support with responsive design (320px to tablets)
 - **Lean code**: Minimal dependencies, focus on performance
 
 ## Tech Stack
@@ -77,7 +78,8 @@ docker compose down              # stop everything, keep volume
 docker compose down -v           # teardown and wipe postgres volume
 ```
 
-The frontend image is built with `VITE_API_URL=http://backend:3000`; override via
+The frontend image uses `VITE_API_URL` only when you need an explicit API origin preventing
+same-origin requests. Leave it unset for production behind the nginx `/api` proxy, or override via
 `frontend.build.args` in `docker-compose.yml` if you need a different API endpoint.
 
 > **Note:** The backend Docker build copies both `Cargo.toml` and `Cargo.lock`. Make sure
@@ -189,6 +191,16 @@ npm run build
 ### Environment Variables
 Backend: `.env` file with `DATABASE_URL=postgres://...`
 
+## Mobile Support
+
+✅ **Fully implemented** - Wentu now works seamlessly on mobile devices with:
+- Touch drag-to-select for calendar date ranges
+- Responsive layout from 320px to tablets
+- WCAG AAA compliant touch targets (44x44px minimum)
+- Optimized typography and spacing for small screens
+
+See [docs/MOBILE_SUPPORT.md](docs/MOBILE_SUPPORT.md) for complete documentation.
+
 ## Roadmap
 
 None of this is definite, but these were stretch goals in early design docs & may be added later. Consider complexity to be directly correlated with likelihood of development: the more complex the feature, the less likely it'll arrive soon.
@@ -196,7 +208,7 @@ None of this is definite, but these were stretch goals in early design docs & ma
 - [ ] WebSocket support for live vote updates
 - [ ] Export results as calendar invite
 - [ ] Multi-language support
-- [ ] Mobile app (React Native)
+- [x] ~~Mobile app (React Native)~~ (Web app now fully mobile-responsive)
 - [ ] Advanced scheduling (timezone handling)
 - [ ] Anonymous voting mode
 
