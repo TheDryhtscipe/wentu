@@ -190,12 +190,25 @@
         Object.entries(dayTimeSlots).filter(([key]) => includedKeys.has(key))
       );
 
+      // Convert dateRange to UTC midnight to avoid timezone offset issues
+      // The calendar returns local midnight dates, we need to send UTC midnight
+      const dateRangeStartUTC = new Date(Date.UTC(
+        dateRangeStart.getFullYear(),
+        dateRangeStart.getMonth(),
+        dateRangeStart.getDate()
+      ));
+      const dateRangeEndUTC = new Date(Date.UTC(
+        dateRangeEnd.getFullYear(),
+        dateRangeEnd.getMonth(),
+        dateRangeEnd.getDate()
+      ));
+
       const body = {
         title,
         description: description || null,
         creator_name: creatorName,
-        date_range_start: dateRangeStart.toISOString(),
-        date_range_end: dateRangeEnd.toISOString(),
+        date_range_start: dateRangeStartUTC.toISOString(),
+        date_range_end: dateRangeEndUTC.toISOString(),
         pref_deadline: new Date(prefDeadline).toISOString(),
         enable_time_slots: enableTimeSlots || null,
         timezone: enableTimeSlots ? timezone : null,
@@ -290,7 +303,7 @@
   <div class="card mb-4 sm:mb-6">
     <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Date range</h3>
     <p class="text-text-secondary text-xs sm:text-sm mb-3 sm:mb-4">Select the date range. Participants will vote on which individual days they prefer within this range.</p>
-    <Calendar on:daterange={(e) => setDateRange(e.detail.start, e.detail.end)} />
+    <Calendar on:daterange={(e) => setDateRange(e.detail.start, e.detail.end)} mode="range" />
   </div>
 
   <!-- Selected range -->

@@ -2,6 +2,8 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import { ArrowLeft, Loader2, AlertCircle, Lock, Copy, CheckCircle } from 'lucide-svelte';
   import DragDropPreferences from '../components/DragDropPreferences.svelte';
+  import Calendar from '../components/Calendar.svelte';
+  import TimeOrderingModal from '../components/TimeOrderingModal.svelte';
   import STVResults from '../components/STVResults.svelte';
   import ExpiryTimer from '../components/ExpiryTimer.svelte';
   import { api } from '../lib/api.js';
@@ -27,6 +29,42 @@
   let lastAction = '';
   let stvResults = null;
   let copied = false;
+  
+  // Preferences calendar
+  let preferenceSelections = [];  // Array of { date/dateStart, dateEnd?, order }
+  let showPreferencesCalendar = false;
+
+  // Time ordering modal state
+  let showTimeOrderingModal = false;
+  let modalTimeSlots = [];
+  let modalDateLabel = '';
+  let pendingDateKey = '';
+
+  // Auto-show calendar when there are >5 options
+  $: if (preferences.length > 5) {
+    showPreferencesCalendar = true;
+  }
+
+  // Group date options by calendar day for detecting multi-time dates
+  $: dateOptionsByDay = (() => {
+    const groups = new Map();
+    for (const option of wentu?.date_options || []) {
+      const startDate = new Date(option.start);
+      const year = startDate.getUTCFullYear();
+      const month = String(startDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(startDate.getUTCDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
+
+      if (!groups.has(dateKey)) {
+        groups.set(dateKey, []);
+      }
+      groups.get(dateKey).push(option);
+    }
+    return groups;
+  })();
+
+  // Calendar starts empty - user clicks to reorder preferences
+  // preferenceSelections will be populated by user clicks via the calendar
 
   $: deadlineReached = wentu && new Date() > new Date(wentu.pref_deadline);
 
@@ -208,6 +246,131 @@
   function goHome() {
     dispatch('navigate', { page: 'home' });
   }
+
+  function handlePreferencesChange(event) {
+    const calendarSelections = event.detail.selectedDates;
+
+    // Find the most recently clicked date (highest order number)
+    const latestSelection = calendarSelections
+      .filter(s => s.date)
+      .sort((a, b) => b.order - a.order)[0];
+
+    if (!latestSelection) {
+      // No new single-date selection, just sync state
+      preferenceSelections = [...calendarSelections];
+      syncPreferencesFromSelections(calendarSelections);
+      return;
+    }
+
+    const clickedDateKey = latestSelection.date;
+    const timeSlotsForDate = dateOptionsByDay.get(clickedDateKey) || [];
+
+    // Filter out already-removed time slots
+    const removedIds = new Set(removedPreferences.map(r => r.id));
+    const availableTimeSlots = timeSlotsForDate.filter(t => !removedIds.has(t.id));
+
+    if (availableTimeSlots.length > 1) {
+      // Multiple time slots available - open modal
+      // Remove the clicked date from selections since user hasn't confirmed yet
+      const updatedSelections = calendarSelections.filter(s => s.date !== clickedDateKey);
+      preferenceSelections = [...updatedSelections];
+      openTimeOrderingModal(clickedDateKey, availableTimeSlots);
+    } else {
+      // Single time slot (or none available) - add directly (current behavior)
+      preferenceSelections = [...calendarSelections];
+      syncPreferencesFromSelections(calendarSelections);
+    }
+  }
+
+  function syncPreferencesFromSelections(calendarSelections) {
+    // Get clicked dates in click order
+    const clickedDatesInOrder = calendarSelections
+      .sort((a, b) => a.order - b.order)
+      .flatMap((selection) => {
+        if (selection.date) {
+          return wentu.date_options.filter(d => {
+            const startDate = new Date(d.start);
+            const year = startDate.getUTCFullYear();
+            const month = String(startDate.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(startDate.getUTCDate()).padStart(2, '0');
+            const dateKey = `${year}-${month}-${day}`;
+            return dateKey === selection.date;
+          });
+        }
+        return [];
+      });
+
+    // Get clicked date IDs
+    const clickedIds = new Set(clickedDatesInOrder.map(d => d.id));
+
+    // Get unclicked dates in their original order (excluding removed ones)
+    const removedIds = new Set(removedPreferences.map(r => r.id));
+    const unclickedDates = wentu.date_options.filter(d =>
+      !clickedIds.has(d.id) && !removedIds.has(d.id)
+    );
+
+    // Combine: clicked dates in click order, then unclicked dates
+    preferences = [...clickedDatesInOrder, ...unclickedDates];
+  }
+
+  function openTimeOrderingModal(dateKey, timeSlots) {
+    pendingDateKey = dateKey;
+    modalTimeSlots = timeSlots;
+
+    // Create human-readable date label
+    const [year, month, day] = dateKey.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    modalDateLabel = date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC'
+    });
+
+    showTimeOrderingModal = true;
+  }
+
+  function handleTimeOrderingConfirm(event) {
+    const { orderedTimeSlots, removedTimeSlots } = event.detail;
+
+    // Get IDs of slots being added or removed
+    const slotsToAddIds = new Set(orderedTimeSlots.map(s => s.id));
+    const slotsToRemoveIds = new Set(removedTimeSlots.map(s => s.id));
+
+    // Remove from preferences any slots that are being added or removed
+    preferences = preferences.filter(p =>
+      !slotsToAddIds.has(p.id) && !slotsToRemoveIds.has(p.id)
+    );
+
+    // Add ordered slots to the beginning (top of list)
+    preferences = [...orderedTimeSlots, ...preferences];
+
+    // Add removed slots to removedPreferences
+    if (removedTimeSlots.length > 0) {
+      removedPreferences = [...removedPreferences, ...removedTimeSlots];
+      saveRemovedPreferences();
+    }
+
+    // Update calendar selections to include this date
+    const maxOrder = Math.max(...preferenceSelections.map(s => s.order), 0);
+    preferenceSelections = [...preferenceSelections, { date: pendingDateKey, order: maxOrder + 1 }];
+
+    closeTimeOrderingModal();
+  }
+
+  function handleTimeOrderingCancel() {
+    // Don't add this date to calendar selections - just close modal
+    closeTimeOrderingModal();
+  }
+
+  function closeTimeOrderingModal() {
+    showTimeOrderingModal = false;
+    modalTimeSlots = [];
+    modalDateLabel = '';
+    pendingDateKey = '';
+  }
+
+
 </script>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-0">
@@ -305,8 +468,33 @@
             <p>Preference deadline has passed. You can no longer edit.</p>
           </div>
         {:else}
-          <p class="text-text-secondary text-xs sm:text-sm mb-3 sm:mb-4">Drag to order dates by preference</p>
+          <p class="text-text-secondary text-xs sm:text-sm mb-3 sm:mb-4">Drag to order dates by preference, or use the calendar below</p>
         {/if}
+
+        <!-- Preferences Calendar Drawer -->
+        <div class="bg-content-bg rounded p-3 sm:p-4 mb-3 sm:mb-4 border border-accent/20">
+          <button 
+            on:click={() => showPreferencesCalendar = !showPreferencesCalendar}
+            disabled={deadlineReached}
+            class="w-full text-left font-medium text-accent hover:text-accent/80 transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span>Reorder by clicking dates on calendar (optional)</span>
+            <span class="text-sm">{showPreferencesCalendar ? '▼' : '▶'}</span>
+          </button>
+            
+          {#if showPreferencesCalendar && !deadlineReached}
+            <div class="mt-4 pt-4 border-t border-accent/20">
+              <p class="text-text-secondary text-xs sm:text-sm mb-3 sm:mb-4">Click dates in order of preference. Each click moves that date to the end of your list. Drag the list below to reorder further.</p>
+              <Calendar 
+                mode="preferences"
+                selectedDates={preferenceSelections}
+                availableDateOptions={wentu.date_options}
+                on:preferenceschange={handlePreferencesChange}
+              />
+            </div>
+          {/if}
+        </div>
+
         <DragDropPreferences
           bind:items={preferences}
           disabled={deadlineReached}
@@ -373,3 +561,12 @@
     {/if}
   {/if}
 </div>
+
+{#if showTimeOrderingModal}
+  <TimeOrderingModal
+    timeSlots={modalTimeSlots}
+    dateLabel={modalDateLabel}
+    on:confirm={handleTimeOrderingConfirm}
+    on:cancel={handleTimeOrderingCancel}
+  />
+{/if}

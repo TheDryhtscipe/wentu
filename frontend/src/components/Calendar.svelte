@@ -6,6 +6,11 @@
 
   export let year = new Date().getFullYear();
   export let month = new Date().getMonth();
+  export let mode = 'range';  // 'range' or 'preferences'
+  export let selectedDates = [];  // For preferences mode: array of { date, order }
+  export let availableDateOptions = [];  // For preferences mode: array of { start, end, label, id }
+
+
 
   let startDate = null;
   let endDate = null;
@@ -22,6 +27,20 @@
   // Touch event state management
   let interactionType = null;  // 'mouse' | 'touch' | null
   let touchIdentifier = null;  // Track active touch
+  
+  // Span-in-progress state for preferences mode
+  let spanStartKey = null;
+
+  // Reactive maps for template reactivity (Svelte can't track dependencies inside function calls)
+  $: orderByDateKey = new Map(
+    selectedDates.map(d => [d.date || d.dateStart, d.order])
+  );
+  $: selectedDateKeys = new Set(
+    selectedDates.flatMap(d => [d.date, d.dateStart, d.dateEnd].filter(Boolean))
+  );
+  
+  // Auto-navigation on drag
+  let dragAutoNavTimeout = null;
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -31,10 +50,17 @@
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayNamesMobile = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-  $: firstDay = new Date(year, month, 1);
-  $: lastDay = new Date(year, month + 1, 0);
-  $: daysInMonth = lastDay.getDate();
-  $: startingDayOfWeek = firstDay.getDay();
+  let firstDay;
+  let lastDay;
+  let daysInMonth;
+  let startingDayOfWeek;
+
+  $: {
+    firstDay = new Date(year, month, 1);
+    lastDay = new Date(year, month + 1, 0);
+    daysInMonth = lastDay.getDate();
+    startingDayOfWeek = firstDay.getDay();
+  }
 
   $: days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   $: paddingDays = Array.from({ length: startingDayOfWeek }, () => null);
@@ -72,7 +98,94 @@
 
   function isSelected(day) {
     const key = getDayKey(day);
+    if (mode === 'preferences') {
+      return selectedDates.some(d => (d.date || d.dateStart) === key || d.dateEnd === key);
+    }
     return startDate === key || endDate === key;
+  }
+
+  function getDateOrder(day) {
+    const key = getDayKey(day);
+    const selected = selectedDates.find(d => (d.date || d.dateStart) === key || d.dateEnd === key);
+    return selected ? selected.order : null;
+  }
+
+  function isDateInSelection(day) {
+    const key = getDayKey(day);
+    const date = new Date(year, month, day);
+    
+    for (const selection of selectedDates) {
+      if (selection.dateStart && selection.dateEnd) {
+        const start = parseKey(selection.dateStart);
+        const end = parseKey(selection.dateEnd);
+        if (date > start && date < end) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function isDateAvailable(day) {
+    // Check if this date falls within any available date option
+    if (mode !== 'preferences' || availableDateOptions.length === 0) {
+      return true;
+    }
+
+    // Get the calendar date as a string (YYYY-MM-DD)
+    const checkDateKey = getDayKey(day);
+
+    // Check if any option's start date matches this calendar day
+    const available = availableDateOptions.some(option => {
+      // Parse the start time and extract just the date part
+      const optStart = new Date(option.start);
+      const optYear = optStart.getUTCFullYear();
+      const optMonth = String(optStart.getUTCMonth() + 1).padStart(2, '0');
+      const optDay = String(optStart.getUTCDate()).padStart(2, '0');
+      const optDateKey = `${optYear}-${optMonth}-${optDay}`;
+
+      // A calendar day is available if any option starts on that day
+      return checkDateKey === optDateKey;
+    });
+
+    return available;
+  }
+
+  function movePreferenceToEnd(key) {
+    // Move a date to the end of the preference list
+    const existing = selectedDates.findIndex(d => (d.date || d.dateStart) === key || d.dateEnd === key);
+    
+    if (existing !== -1) {
+      // Remove from current position
+      const item = selectedDates[existing];
+      selectedDates = selectedDates.filter((_, i) => i !== existing);
+      // Add to end with new order
+      const nextOrder = selectedDates.length + 1;
+      selectedDates = [...selectedDates, { ...item, order: nextOrder }];
+    } else {
+      // If not already in list, add to end
+      const nextOrder = Math.max(...selectedDates.map(d => d.order), 0) + 1;
+      selectedDates = [...selectedDates, { date: key, order: nextOrder }];
+    }
+  }
+
+  function togglePreferenceSelection(key) {
+    const existing = selectedDates.findIndex(d => (d.date || d.dateStart) === key || d.dateEnd === key);
+    
+    if (existing !== -1) {
+      // Remove the date
+      selectedDates = selectedDates.filter((_, i) => i !== existing);
+      // Renumber remaining dates
+      selectedDates = selectedDates.map((d, i) => ({ ...d, order: i + 1 }));
+      if (spanStartKey === key) {
+        spanStartKey = null;
+      }
+    } else {
+      // Add to the end with next order number
+      const nextOrder = Math.max(...selectedDates.map(d => d.order), 0) + 1;
+      selectedDates = [...selectedDates, { date: key, order: nextOrder }];
+      spanStartKey = key;
+    }
   }
 
   function handleMouseDown(day) {
@@ -84,13 +197,21 @@
     isDragging = false;
     dragStartDay = day;
     const key = getDayKey(day);
-    if (!startDate || endDate) {
-      startDate = key;
-      endDate = null;
+    
+    if (mode === 'preferences') {
+      // In preferences mode, track the start date for the span
+      spanStartKey = key;
       startedWithMouseDown = true;
     } else {
-      startedWithMouseDown = false;
+      if (!startDate || endDate) {
+        startDate = key;
+        endDate = null;
+        startedWithMouseDown = true;
+      } else {
+        startedWithMouseDown = false;
+      }
     }
+    
     hoveredDate = key;
   }
 
@@ -101,7 +222,14 @@
     if (isMouseDown && dragStartDay !== null) {
       const currentKey = getDayKey(day);
       hoveredDate = currentKey;
-      endDate = currentKey;
+      
+      if (mode === 'preferences') {
+        // Track end date for visual feedback
+        endDate = currentKey;
+      } else {
+        endDate = currentKey;
+      }
+      
       if (day !== dragStartDay) {
         isDragging = true;
       }
@@ -125,13 +253,27 @@
       ignoreClick = true;
       startedWithMouseDown = false;
 
-      // Emit the event with properly ordered dates
-      const start = parseKey(startDate);
-      const end = parseKey(endDate);
-      dispatch('daterange', {
-        start: start < end ? start : end,
-        end: start < end ? end : start
-      });
+      if (mode === 'preferences') {
+        // In preferences mode, dragging creates a span
+        if (spanStartKey && spanStartKey !== key) {
+          const start = parseKey(spanStartKey);
+          const end = parseKey(key);
+          const minKey = start < end ? spanStartKey : key;
+          const maxKey = start < end ? key : spanStartKey;
+          const nextOrder = Math.max(...selectedDates.map(d => d.order), 0) + 1;
+          selectedDates = [...selectedDates, { dateStart: minKey, dateEnd: maxKey, order: nextOrder }];
+          spanStartKey = null;
+          dispatch('preferenceschange', { selectedDates });
+        }
+      } else {
+        // Emit the event with properly ordered dates
+        const start = parseKey(startDate);
+        const end = parseKey(endDate);
+        dispatch('daterange', {
+          start: start < end ? start : end,
+          end: start < end ? end : start
+        });
+      }
     }
 
     isMouseDown = false;
@@ -168,6 +310,18 @@
   }
 
   function handleClick(day) {
+    const key = getDayKey(day);
+    
+    if (mode === 'preferences') {
+      // Guard: only allow clicking available dates
+      if (!isDateAvailable(day)) {
+        return;
+      }
+      togglePreferenceSelection(key);
+      dispatch('preferenceschange', { selectedDates });
+      return;
+    }
+
     // Don't handle click if we just finished dragging
     if (ignoreClick) {
       ignoreClick = false;
@@ -182,7 +336,7 @@
     // Don't interfere with ongoing interactions
     if (interactionType !== null) return;
 
-    applyClickSelection(getDayKey(day));
+    applyClickSelection(key);
   }
 
   function previousMonth() {
@@ -216,6 +370,11 @@
     touchStartedSelection = false;
     interactionType = null;
     touchIdentifier = null;
+    if (mode === 'preferences') {
+      selectedDates = [];
+      spanStartKey = null;
+      dispatch('preferenceschange', { selectedDates: [] });
+    }
   }
 
   // Touch event handlers
@@ -362,39 +521,59 @@
       <div class="day-cell empty"></div>
     {/each}
 
-    {#each days as day (day)}
+    {#each days as day (year + '-' + month + '-' + day)}
       {@const key = getDayKey(day)}
+      {@const order = mode === 'preferences' ? orderByDateKey.get(key) : null}
+      {@const inSelection = mode === 'preferences' ? isDateInSelection(day) : false}
+      {@const available = isDateAvailable(day)}
+      {@const isSelectedDate = mode === 'preferences' ? selectedDateKeys.has(key) : (startDate === key || endDate === key)}
       <button
         data-day={day}
-        on:mousedown={() => handleMouseDown(day)}
-        on:mouseenter={() => handleMouseEnter(day)}
+        on:mousedown={() => available && handleMouseDown(day)}
+        on:mouseenter={() => available && handleMouseEnter(day)}
         on:mouseleave={handleMouseLeave}
-        on:mouseup={() => handleMouseUp(day)}
-        on:click={() => handleClick(day)}
-        on:touchstart={(e) => handleTouchStart(e, day)}
+        on:mouseup={() => available && handleMouseUp(day)}
+        on:click={() => available && handleClick(day)}
+        on:touchstart={(e) => available && handleTouchStart(e, day)}
+        disabled={!available}
         class="day-cell"
-        class:in-range={isInRange(day)}
-        class:selected={isSelected(day)}
+        class:in-range={mode === 'range' ? isInRange(day) : inSelection}
+        class:selected={isSelectedDate}
         class:drag-endpoint={isDragging && hoveredDate === key}
+        class:unavailable={!available}
         aria-label="Select {monthNames[month]} {day}"
       >
-        {day}
+        <span class="day-number">{day}</span>
+        {#if order}
+          <span class="order-badge">{order}</span>
+        {/if}
       </button>
     {/each}
   </div>
 
   <div class="calendar-footer">
-    {#if startDate}
-      <p class="text-text-secondary text-sm">
-        {#if endDate}
-          Selected: {parseKey(startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} to {parseKey(endDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-        {:else}
-          Start: {parseKey(startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-        {/if}
-      </p>
-    {/if}
-    {#if startDate || endDate}
-      <button on:click={reset} class="btn-secondary px-3 py-1 text-sm">Clear</button>
+    {#if mode === 'preferences'}
+      {#if selectedDates.length > 0}
+        <p class="text-text-secondary text-sm">
+          Selected {selectedDates.length} option{selectedDates.length !== 1 ? 's' : ''}
+        </p>
+      {/if}
+      {#if selectedDates.length > 0}
+        <button on:click={reset} class="btn-secondary px-3 py-1 text-sm">Clear selection</button>
+      {/if}
+    {:else}
+      {#if startDate}
+        <p class="text-text-secondary text-sm">
+          {#if endDate}
+            Selected: {parseKey(startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} to {parseKey(endDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          {:else}
+            Start: {parseKey(startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          {/if}
+        </p>
+      {/if}
+      {#if startDate || endDate}
+        <button on:click={reset} class="btn-secondary px-3 py-1 text-sm">Clear</button>
+      {/if}
     {/if}
   </div>
 
@@ -496,6 +675,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
     border: 1px solid rgba(255, 156, 99, 0.1);
     border-radius: 0.25rem;
     background: transparent;
@@ -506,6 +686,12 @@
     font-weight: 500;
     padding: 0;
     min-height: 28px;
+  }
+
+  .day-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   @media (min-width: 640px) {
@@ -522,7 +708,14 @@
     pointer-events: none;
   }
 
-  .day-cell:not(.empty):hover {
+  .day-cell.unavailable {
+    color: #4a4a4a;
+    border-color: rgba(255, 156, 99, 0.05);
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  .day-cell:not(.empty):not(.unavailable):hover {
     border-color: var(--accent, #ff9c63);
   }
 
@@ -541,6 +734,30 @@
     color: var(--dark-bg, #2b1313);
     border-color: var(--accent, #ff9c63);
     font-weight: 700;
+  }
+
+  .order-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.2em;
+    height: 1.2em;
+    font-weight: 700;
+    font-size: 0.6em;
+    background: var(--accent, #ff9c63);
+    color: var(--dark-bg, #2b1313);
+    border-radius: 50%;
+  }
+
+  @media (min-width: 640px) {
+    .order-badge {
+      width: 1.4em;
+      height: 1.4em;
+      font-size: 0.65em;
+    }
   }
 
   .calendar-footer {
