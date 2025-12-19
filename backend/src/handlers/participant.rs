@@ -5,7 +5,7 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use serde_json::json;
-use sqlx::{PgPool, Row};
+use sqlx::Row;
 use std::collections::HashSet;
 use uuid::Uuid;
 use validator::Validate;
@@ -14,6 +14,7 @@ use super::AppState;
 use crate::audit;
 use crate::models::wentu::SAFE_NAME_REGEX;
 use crate::models::{JoinWentuRequest, JoinWentuResponse, UpdatePreferencesRequest};
+use serde::Deserialize;
 
 /// Join an existing wentu
 pub async fn join_wentu(
@@ -221,4 +222,120 @@ pub async fn update_preferences(
     .await;
 
     Ok(StatusCode::OK)
+}
+
+#[derive(Deserialize, Validate)]
+pub struct CheckVotedRequest {
+    pub participant_id: Uuid,
+    #[validate(length(min = 1))]
+    pub participant_key: String,
+}
+
+/// Check if participant has voted
+pub async fn has_voted(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    Json(req): Json<CheckVotedRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    // Validate input
+    req.validate().map_err(|e| {
+        tracing::warn!("Validation failed for has_voted: {:?}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+
+    // Verify participant and wentu exist
+    let participant_row = sqlx::query(
+        "SELECT p.id, p.is_creator
+         FROM participants p
+         JOIN wentus w ON p.wentu_id = w.id
+         WHERE p.id = $1 AND w.slug = $2 AND p.participant_key = $3",
+    )
+    .bind(req.participant_id)
+    .bind(&slug)
+    .bind(&req.participant_key)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let is_creator: bool = participant_row.get(1);
+
+    // Check if participant has any rankings
+    let has_rankings = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM rankings WHERE participant_id = $1)",
+    )
+    .bind(req.participant_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(json!({
+        "has_voted": has_rankings,
+        "is_creator": is_creator,
+    })))
+}
+
+/// Get list of participants who have voted (creator only)
+pub async fn get_voters(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    Json(req): Json<CheckVotedRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    // Validate input
+    req.validate().map_err(|e| {
+        tracing::warn!("Validation failed for get_voters: {:?}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+
+    // Verify participant and wentu exist, and check if creator
+    let participant_row = sqlx::query(
+        "SELECT p.id, p.is_creator
+         FROM participants p
+         JOIN wentus w ON p.wentu_id = w.id
+         WHERE p.id = $1 AND w.slug = $2 AND p.participant_key = $3",
+    )
+    .bind(req.participant_id)
+    .bind(&slug)
+    .bind(&req.participant_key)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let is_creator: bool = participant_row.get(1);
+
+    // Only creators can see the voter list
+    if !is_creator {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // Get wentu ID
+    let wentu_row = sqlx::query("SELECT id FROM wentus WHERE slug = $1")
+        .bind(&slug)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let wentu_id: Uuid = wentu_row.get(0);
+
+    // Get list of participants who have voted
+    let voters = sqlx::query(
+        "SELECT DISTINCT p.name
+         FROM participants p
+         INNER JOIN rankings r ON p.id = r.participant_id
+         WHERE p.wentu_id = $1
+         ORDER BY p.name",
+    )
+    .bind(wentu_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .iter()
+    .map(|row| row.get::<String, _>(0))
+    .collect::<Vec<_>>();
+
+    Ok(Json(json!({
+        "voters": voters,
+    })))
 }

@@ -29,7 +29,10 @@
   let lastAction = '';
   let stvResults = null;
   let copied = false;
-  
+  let loadingResults = false;
+  let isCreator = false;
+  let hasVoted = false;
+
   // Preferences calendar
   let preferenceSelections = [];  // Array of { date/dateStart, dateEnd?, order }
   let showPreferencesCalendar = false;
@@ -143,10 +146,45 @@
           await joinWentu({ silent: true });
         }
       }
+
+      // Check if user has voted and load results if eligible
+      // This needs to happen after all participant credential setup is complete
+      if (participantId && participantKey) {
+        await checkVotingStatusAndLoadResults();
+      }
     } catch (err) {
       error = err.message;
     } finally {
       loading = false;
+    }
+  }
+
+  async function checkVotingStatusAndLoadResults() {
+    if (!participantId || !participantKey) {
+      console.log('Skipping voting status check - no credentials');
+      return;
+    }
+
+    try {
+      console.log('Checking voting status for participant:', participantId);
+      const response = await api.post(`/api/wentu/${slug}/has-voted`, {
+        participant_id: participantId,
+        participant_key: participantKey,
+      });
+
+      hasVoted = response.has_voted;
+      isCreator = response.is_creator;
+
+      console.log('Voting status:', { hasVoted, isCreator });
+
+      // Load results if user has voted OR is creator
+      if (hasVoted || isCreator) {
+        console.log('Loading STV results...');
+        await loadSTVResults();
+      }
+    } catch (err) {
+      console.error('Failed to check voting status:', err);
+      // Don't show error to user - this is a background check
     }
   }
 
@@ -188,6 +226,7 @@
       });
 
       error = '';
+      hasVoted = true;
       await loadSTVResults();
     } catch (err) {
       if (err.message && err.message.startsWith('HTTP 401') && participantName.trim()) {
@@ -202,6 +241,7 @@
             })),
           });
           error = '';
+          hasVoted = true;
           await loadSTVResults();
           return;
         } catch (retryErr) {
@@ -215,9 +255,13 @@
 
   async function loadSTVResults() {
     try {
+      loadingResults = true;
       stvResults = await api.get(`/api/wentu/${slug}/stv-results`);
     } catch (err) {
       console.error('Failed to load STV results:', err);
+      // Don't set stvResults to null - keep previous results if they exist
+    } finally {
+      loadingResults = false;
     }
   }
 
@@ -555,8 +599,21 @@
         {/if}
       </div>
 
-      {#if stvResults}
-        <STVResults results={stvResults} {wentu} />
+      {#if loadingResults}
+        <div class="card">
+          <div class="flex items-center justify-center gap-2 text-text-secondary">
+            <Loader2 size={20} class="animate-spin" />
+            <p>Loading election results...</p>
+          </div>
+        </div>
+      {:else if stvResults}
+        <STVResults
+          results={stvResults}
+          {wentu}
+          {isCreator}
+          {participantId}
+          {participantKey}
+        />
       {/if}
     {/if}
   {/if}

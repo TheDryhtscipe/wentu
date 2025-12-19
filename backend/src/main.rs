@@ -26,7 +26,7 @@ use tracing_subscriber;
 
 use handlers::{
     get_stv_results,
-    participant::{join_wentu, update_preferences},
+    participant::{get_voters, has_voted, join_wentu, update_preferences},
     wentu::{close_wentu, create_wentu, get_wentu, AppState},
 };
 
@@ -111,6 +111,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             post(update_preferences).layer(write_rate_limit_layer),
         )
         .route("/api/wentu/:slug/stv-results", get(get_stv_results))
+        .route("/api/wentu/:slug/has-voted", post(has_voted))
+        .route("/api/wentu/:slug/voters", post(get_voters))
         // Security headers
         .layer(SetResponseHeaderLayer::if_not_present(
             header::X_CONTENT_TYPE_OPTIONS,

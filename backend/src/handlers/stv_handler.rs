@@ -65,6 +65,15 @@ pub async fn get_stv_results(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    // Get total participant count for this wentu
+    let total_participants = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(DISTINCT id) FROM participants WHERE wentu_id = $1"
+    )
+    .bind(wentu_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as usize;
+
     // Build voter preferences structure (participant -> ordered date options)
     let mut voter_prefs: std::collections::HashMap<Uuid, Vec<Uuid>> =
         std::collections::HashMap::new();
@@ -75,16 +84,27 @@ pub async fn get_stv_results(
             .push(pref.date_option_id);
     }
 
+    // Calculate turnout (before consuming voter_prefs)
+    let total_voters = voter_prefs.len();
+
     // Convert to list of preference vectors
     let voter_preferences = voter_prefs.into_iter().map(|(_, prefs)| prefs).collect();
 
     // Calculate STV
     let result = calculate_stv(voter_preferences, date_options);
+    let turnout_percentage = if total_participants > 0 {
+        (total_voters as f64 / total_participants as f64 * 100.0).round() as u32
+    } else {
+        0
+    };
 
     // Build response
     let response = serde_json::json!({
         "winner": result.winner,
         "quota": result.quota,
+        "total_voters": total_voters,
+        "total_participants": total_participants,
+        "turnout_percentage": turnout_percentage,
         "rounds_count": result.rounds.len(),
         "rounds": result.rounds.iter().map(|round| {
             serde_json::json!({
