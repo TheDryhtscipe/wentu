@@ -48,19 +48,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let state = AppState { db: pool };
 
-    // Configure CORS with specific allowed origins
-    let allowed_origins = env::var("ALLOWED_ORIGINS")
-        .unwrap_or_else(|_| "http://localhost:5173,http://127.0.0.1:5173".to_string());
-
-    let origins: Vec<_> = allowed_origins
-        .split(',')
-        .filter_map(|s| s.trim().parse().ok())
-        .collect();
-
-    let cors = CorsLayer::new()
-        .allow_origin(origins)
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers(tower_http::cors::Any);
+    // Configure CORS
+    let is_dev_mode = env::var("ALLOWED_ORIGINS")
+        .map(|s| s.trim().is_empty())
+        .unwrap_or(true);
+    
+    let cors = if !is_dev_mode {
+        // Production mode: use specified origins
+        let allowed_origins = env::var("ALLOWED_ORIGINS").unwrap();
+        let origins: Vec<_> = allowed_origins
+            .split(',')
+            .filter_map(|s| s.trim().parse().ok())
+            .collect();
+        
+        if origins.is_empty() {
+            // Fallback to permissive if parsing failed
+            CorsLayer::permissive()
+        } else {
+            CorsLayer::new()
+                .allow_origin(origins)
+                .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+                .allow_headers(tower_http::cors::Any)
+        }
+    } else {
+        // Development mode: permissive for local testing
+        tracing::info!("No ALLOWED_ORIGINS set - using permissive CORS (dev mode only)");
+        CorsLayer::permissive()
+    };
 
     // Configure global rate limiting: 100 requests per minute per IP
     let rate_limit_config = Arc::new(
@@ -113,6 +127,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/wentu/:slug/stv-results", get(get_stv_results))
         .route("/api/wentu/:slug/has-voted", post(has_voted))
         .route("/api/wentu/:slug/voters", post(get_voters))
+        .layer(cors)  // CORS must be early
+        .layer(rate_limit_layer)
         // Security headers
         .layer(SetResponseHeaderLayer::if_not_present(
             header::X_CONTENT_TYPE_OPTIONS,
@@ -132,21 +148,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .layer(SetResponseHeaderLayer::if_not_present(
             header::CONTENT_SECURITY_POLICY,
-            HeaderValue::from_static(
-                "default-src 'self'; \
-                 script-src 'self' 'unsafe-inline'; \
-                 style-src 'self' 'unsafe-inline'; \
-                 img-src 'self' data: https:; \
-                 font-src 'self'; \
-                 connect-src 'self'; \
-                 frame-ancestors 'none';",
-            ),
+            if is_dev_mode {
+                // Dev mode: permissive CSP
+                HeaderValue::from_static("default-src *; style-src * 'unsafe-inline'; script-src * 'unsafe-inline'; img-src * data:;")
+            } else {
+                // Production mode: restrictive CSP
+                HeaderValue::from_static(
+                    "default-src 'self'; \
+                     script-src 'self' 'unsafe-inline'; \
+                     style-src 'self' 'unsafe-inline'; \
+                     img-src 'self' data: https:; \
+                     font-src 'self'; \
+                     connect-src 'self' https:; \
+                     frame-ancestors 'none';",
+                )
+            },
         ))
-        .layer(rate_limit_layer)
-        .layer(cors)
         .with_state(state);
 
-    let host = env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let host = env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let port: u16 = env::var("SERVER_PORT")
         .ok()
         .and_then(|s| s.parse().ok())

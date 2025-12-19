@@ -98,9 +98,10 @@
 
   <!-- Custom time -->
   <div class="mb-2 sm:mb-3">
-    <label class="text-text-secondary text-xs sm:text-sm mb-1 block">Custom time (HH:MM format):</label>
+    <label for="custom-time" class="text-text-secondary text-xs sm:text-sm mb-1 block">Custom time (HH:MM format):</label>
     <div class="flex gap-2">
       <input
+        id="custom-time"
         type="time"
         class="input flex-1"
         bind:value={newTime}

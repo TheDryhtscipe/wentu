@@ -81,9 +81,9 @@
 
 <div class="min-h-screen bg-dark-bg text-text-primary flex flex-col">
   <header class="bg-content-bg border-b border-accent/30 py-3 px-4 sm:py-4 sm:px-6">
-    <h1 class="text-xl sm:text-2xl font-bold text-accent cursor-pointer" on:click={() => navigate('home')}>
+    <button type="button" class="text-xl sm:text-2xl font-bold text-accent hover:underline" on:click={() => navigate('home')} aria-label="Go to home">
       Wentu
-    </h1>
+    </button>
     <p class="text-text-secondary text-xs sm:text-sm">When to meet with STV</p>
   </header>
 

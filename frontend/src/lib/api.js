@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || '';
+// Auto-discover API URL based on current host
+// If VITE_API_URL is set, use it; otherwise use same host with port 3000
+const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000`;
 const BASE_URL = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
 
 function buildUrl(path) {

@@ -27,6 +27,9 @@
   // Touch event state management
   let interactionType = null;  // 'mouse' | 'touch' | null
   let touchIdentifier = null;  // Track active touch
+  let touchStartX = null;  // Track X position for movement threshold
+  let touchStartY = null;  // Track Y position for movement threshold
+  const TOUCH_MOVE_THRESHOLD = 10;  // pixels - only count as drag if moved > this distance
   
   // Span-in-progress state for preferences mode
   let spanStartKey = null;
@@ -389,27 +392,29 @@
     if (interactionType === 'mouse') return;
 
     interactionType = 'touch';
-    touchIdentifier = event.touches[0].identifier;
-    isDragging = true;
+    const touch = event.touches[0];
+    touchIdentifier = touch.identifier;
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
     dragStartDay = day;
     touchStartDay = day;
     touchMoved = false;
 
-    const key = getDayKey(day);
-    if (!startDate || endDate) {
-      startDate = key;
-      endDate = null;
-      touchStartedSelection = true;
+    if (mode === 'preferences') {
+      // In preferences mode, we're doing tap-to-select, not dragging
+      // Don't set isDragging yet - let handleTouchMove decide if it's a drag
+      hoveredDate = getDayKey(day);
     } else {
-      touchStartedSelection = false;
+      // In range mode, just track the touch start
+      // Don't set dates yet - let handleTouchEnd handle it via applyClickSelection
+      hoveredDate = getDayKey(day);
     }
-    hoveredDate = key;
   }
 
   function handleTouchMove(event) {
     event.preventDefault();
 
-    if (!isDragging || interactionType !== 'touch') return;
+    if (interactionType !== 'touch') return;
 
     // Find which touch is ours
     const touch = Array.from(event.touches).find(
@@ -417,6 +422,19 @@
     );
 
     if (!touch) return;
+
+    // Check if touch has moved beyond threshold (ignore tiny jitter)
+    const distance = Math.sqrt(
+      Math.pow(touch.clientX - touchStartX, 2) + 
+      Math.pow(touch.clientY - touchStartY, 2)
+    );
+    
+    if (distance < TOUCH_MOVE_THRESHOLD) {
+      // Too small to be a drag, ignore
+      return;
+    }
+
+    touchMoved = true;
 
     // Find element under touch point
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -429,16 +447,28 @@
     const day = parseInt(dayCell.dataset.day);
     if (isNaN(day)) return;
 
-    touchMoved = true;
-    const currentKey = getDayKey(day);
-    hoveredDate = currentKey;
-    endDate = currentKey;
+    if (mode === 'range') {
+      // In range mode, start drag when finger moves beyond threshold
+      if (!isDragging) {
+        isDragging = true;
+        // Set startDate from the initial touch point
+        const startKey = getDayKey(dragStartDay);
+        if (!startDate || endDate) {
+          startDate = startKey;
+          endDate = null;
+        }
+      }
+      // Update endDate as finger moves
+      const currentKey = getDayKey(day);
+      hoveredDate = currentKey;
+      endDate = currentKey;
+    }
   }
 
   function handleTouchEnd(event) {
     event.preventDefault();
 
-    if (!isDragging || interactionType !== 'touch') return;
+    if (interactionType !== 'touch') return;
 
     // Find the touch that ended
     const touch = Array.from(event.changedTouches).find(
@@ -447,20 +477,37 @@
 
     if (!touch) return;
 
-    if (touchMoved && startDate && endDate) {
-      const start = parseKey(startDate);
-      const end = parseKey(endDate);
-      dispatch('daterange', {
-        start: start < end ? start : end,
-        end: start < end ? end : start
-      });
-    } else if (!touchMoved && touchStartDay !== null && !touchStartedSelection) {
-      applyClickSelection(getDayKey(touchStartDay));
+    if (mode === 'preferences') {
+      // In preferences mode, handle tap-to-select for reordering
+      if (!touchMoved && touchStartDay !== null) {
+        const key = getDayKey(touchStartDay);
+        // Guard: only allow clicking available dates
+        if (isDateAvailable(touchStartDay)) {
+          togglePreferenceSelection(key);
+          dispatch('preferenceschange', { selectedDates });
+        }
+      }
+    } else {
+      // In range mode, handle drag or tap selection
+      if (isDragging && touchMoved && startDate && endDate) {
+        // Drag complete - emit the range
+        const start = parseKey(startDate);
+        const end = parseKey(endDate);
+        dispatch('daterange', {
+          start: start < end ? start : end,
+          end: start < end ? end : start
+        });
+      } else if (!touchMoved && touchStartDay !== null) {
+        // Simple tap - use applyClickSelection for consistent behavior with desktop clicks
+        applyClickSelection(getDayKey(touchStartDay));
+      }
     }
 
     isDragging = false;
     interactionType = null;
     touchIdentifier = null;
+    touchStartX = null;
+    touchStartY = null;
     dragStartDay = null;
     touchStartDay = null;
     touchMoved = false;
@@ -474,6 +521,8 @@
       isMouseDown = false;
       interactionType = null;
       touchIdentifier = null;
+      touchStartX = null;
+      touchStartY = null;
       dragStartDay = null;
       touchStartDay = null;
       touchMoved = false;
@@ -504,6 +553,8 @@
 
   <div
     class="calendar-grid"
+    role="grid"
+    tabindex="0"
     on:mouseup={cancelMouseDrag}
     on:mouseleave={cancelMouseDrag}
     on:touchmove={handleTouchMove}

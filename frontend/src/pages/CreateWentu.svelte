@@ -44,8 +44,14 @@
   }
 
   function setDateRange(start, end) {
-    dateRangeStart = start;
-    dateRangeEnd = end;
+    // Ensure start is before end
+    if (start > end) {
+      dateRangeStart = end;
+      dateRangeEnd = start;
+    } else {
+      dateRangeStart = start;
+      dateRangeEnd = end;
+    }
     error = '';
   }
 
@@ -257,6 +263,8 @@
     Back to home
   </button>
 
+
+
   <h2 class="text-2xl sm:text-3xl font-bold text-accent mb-6 sm:mb-8">Create a new Wentu</h2>
 
   <div class="card mb-4 sm:mb-6">
@@ -278,7 +286,7 @@
         placeholder="Optional details about the meeting"
         rows="3"
         bind:value={description}
-      />
+      ></textarea>
     </div>
 
     <div class="mb-4 sm:mb-6">
