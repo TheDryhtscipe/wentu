@@ -136,12 +136,17 @@
                 {/if}
               </p>
               <div class="grid grid-cols-1 gap-1 sm:gap-2 text-xs sm:text-sm">
+                {#if round.quota !== undefined && round.quota !== results.quota}
+                  <p class="text-text-secondary text-xs mb-1 italic">
+                    Quota this round: {round.quota} (continuing ballots shrank)
+                  </p>
+                {/if}
                 {#each Object.entries(round.vote_counts).sort((a, b) => b[1] - a[1]) as [dateId, count]}
                   <div class="flex justify-between gap-2">
                     <span class="text-text-secondary truncate flex-1">{findDateLabel(dateId)}</span>
                     <span class="text-text-primary flex-shrink-0 font-medium">
                       {count} vote{count !== 1 ? 's' : ''}
-                      {#if count >= results.quota}
+                      {#if count >= (round.quota ?? results.quota)}
                         <span class="text-success ml-1">✓ (Reached quota)</span>
                       {/if}
                     </span>

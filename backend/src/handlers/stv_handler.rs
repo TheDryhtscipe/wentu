@@ -7,7 +7,7 @@ use sqlx::{FromRow, Row};
 use uuid::Uuid;
 
 use super::AppState;
-use crate::stv::{calculate_stv, STVResult};
+use crate::stv::calculate_stv;
 
 #[derive(FromRow)]
 struct ParticipantPreferences {
@@ -111,6 +111,7 @@ pub async fn get_stv_results(
                 "round_number": round.round_number,
                 "vote_counts": round.vote_counts,
                 "eliminated": round.eliminated,
+                "quota": round.quota,
             })
         }).collect::<Vec<_>>(),
     });
