@@ -37,6 +37,22 @@
   let prefDeadline = getDefaultDeadline();
   let prefDeadlineTime = '23:59';
 
+  function getTimeOptions() {
+    const options = [];
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const d = new Date(2000, 0, 1, h, m);
+        const label = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        options.push({ value, label });
+      }
+    }
+    options.push({ value: '23:59', label: '11:59 PM (end of day)' });
+    return options;
+  }
+
+  const timeOptions = getTimeOptions();
+
   function handleTimeSlotsToggle(event) {
     enableTimeSlots = event.currentTarget.checked;
     if (enableTimeSlots && !prefDeadline) {
@@ -312,7 +328,11 @@
       <p class="text-text-secondary text-xs sm:text-sm mb-2">Participants can edit their preferences until this date and time</p>
       <div class="flex flex-col sm:flex-row gap-2">
         <input class="input flex-1" type="date" bind:value={prefDeadline} />
-        <input class="input w-full sm:w-32" type="time" bind:value={prefDeadlineTime} />
+        <select class="input w-full sm:w-auto" bind:value={prefDeadlineTime}>
+          {#each timeOptions as opt}
+            <option value={opt.value}>{opt.label}</option>
+          {/each}
+        </select>
       </div>
     </div>
   </div>
