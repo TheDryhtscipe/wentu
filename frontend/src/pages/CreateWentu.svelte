@@ -161,11 +161,17 @@
   }
 
   async function submitCreate() {
-    console.log('submitCreate called', { title, creatorName, dateRangeStart, dateRangeEnd, prefDeadline, enableTimeSlots, timezone, dayTimeSlots });
+    console.log('submitCreate called', { title, creatorName, dateRangeStart, dateRangeEnd, prefDeadline, prefDeadlineTime, enableTimeSlots, timezone, dayTimeSlots });
 
-    if (!title || !creatorName || !dateRangeStart || !dateRangeEnd || !prefDeadline) {
+    if (!title || !creatorName || !dateRangeStart || !dateRangeEnd || !prefDeadline || !prefDeadlineTime) {
       error = 'Title, name, date range, and preference deadline required';
-      console.log('Validation failed:', { title, creatorName, dateRangeStart, dateRangeEnd, prefDeadline });
+      console.log('Validation failed:', { title, creatorName, dateRangeStart, dateRangeEnd, prefDeadline, prefDeadlineTime });
+      return;
+    }
+
+    const deadlineDateTime = new Date(`${prefDeadline}T${prefDeadlineTime}`);
+    if (deadlineDateTime <= new Date()) {
+      error = 'Preference deadline must be in the future';
       return;
     }
 
@@ -216,7 +222,7 @@
         creator_name: creatorName,
         date_range_start: dateRangeStartUTC.toISOString(),
         date_range_end: dateRangeEndUTC.toISOString(),
-        pref_deadline: new Date(prefDeadline).toISOString(),
+        pref_deadline: new Date(`${prefDeadline}T${prefDeadlineTime}`).toISOString(),
         enable_time_slots: enableTimeSlots || null,
         timezone: enableTimeSlots ? timezone : null,
         day_time_slots: enableTimeSlots ? filteredTimeSlots : null,
