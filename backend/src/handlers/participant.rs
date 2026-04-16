@@ -166,7 +166,7 @@ pub async fn update_preferences(
 
     // Verify participant and wentu exist
     let participant_row = sqlx::query(
-        "SELECT p.wentu_id, p.token_expires_at FROM participants p
+        "SELECT p.wentu_id, p.token_expires_at, w.pref_deadline FROM participants p
          JOIN wentus w ON p.wentu_id = w.id
          WHERE p.id = $1 AND w.slug = $2 AND p.participant_key = $3",
     )
@@ -187,6 +187,15 @@ pub async fn update_preferences(
             req.participant_id
         );
         return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    let pref_deadline: DateTime<Utc> = participant_row.get(2);
+    if pref_deadline < Utc::now() {
+        tracing::warn!(
+            "update_preferences blocked: deadline passed for wentu (slug: {})",
+            slug
+        );
+        return Err(StatusCode::FORBIDDEN);
     }
 
     // Delete old rankings
