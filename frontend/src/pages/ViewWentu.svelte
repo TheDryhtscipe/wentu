@@ -479,7 +479,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
         <div>
           <p class="text-text-secondary">Pref. deadline:</p>
-          <p class="text-accent">{new Date(wentu.pref_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+          <p class="text-accent">{new Date(wentu.pref_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(wentu.pref_deadline).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
         </div>
         <div>
           <p class="text-text-secondary">Expires:</p>
