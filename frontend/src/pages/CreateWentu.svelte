@@ -35,6 +35,7 @@
   }
   
   let prefDeadline = getDefaultDeadline();
+  let prefDeadlineTime = '23:59';
 
   function handleTimeSlotsToggle(event) {
     enableTimeSlots = event.currentTarget.checked;
@@ -302,8 +303,11 @@
         <CalendarIcon size={18} class="flex-shrink-0" />
         Preference deadline <span class="text-error">*</span>
       </label>
-      <p class="text-text-secondary text-xs sm:text-sm mb-2">Participants can edit their preferences until this date</p>
-      <input class="input w-full" type="date" bind:value={prefDeadline} />
+      <p class="text-text-secondary text-xs sm:text-sm mb-2">Participants can edit their preferences until this date and time</p>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input class="input flex-1" type="date" bind:value={prefDeadline} />
+        <input class="input w-full sm:w-32" type="time" bind:value={prefDeadlineTime} />
+      </div>
     </div>
   </div>
 
