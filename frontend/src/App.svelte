@@ -3,6 +3,7 @@
   import Home from './pages/Home.svelte';
   import CreateWentu from './pages/CreateWentu.svelte';
   import ViewWentu from './pages/ViewWentu.svelte';
+  import ToastHost from './components/ui/ToastHost.svelte';
   import './app.css';
 
   let currentPage = 'home';
@@ -108,6 +109,8 @@
     <p>No accounts, no persistence. Everything expires.</p>
   </footer>
 </div>
+
+<ToastHost />
 
 <style global>
   :global(body) {
