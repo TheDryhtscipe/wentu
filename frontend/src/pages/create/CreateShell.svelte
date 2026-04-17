@@ -5,11 +5,12 @@
   import Button from '../../components/ui/Button.svelte';
   import StepBasics from './StepBasics.svelte';
   import StepDates from './StepDates.svelte';
+  import StepTimeSlots from './StepTimeSlots.svelte';
+  import StepReview from './StepReview.svelte';
 
   const dispatch = createEventDispatcher();
 
   // formData mirrors the shape CreateWentu.svelte submits today.
-  // Tasks 6-8 will populate individual fields as each step is built.
   let formData = {
     title: '',
     description: '',
@@ -34,8 +35,9 @@
   let currentStep = 'basics';
   let completed = new Set();
   // Per-step validity — a step reports valid=true when its Next button may be enabled.
-  // Placeholders (Task 8) report valid=true until they ship real validation.
-  let stepValid = { basics: false, dates: false, timeslots: true, review: true };
+  // Review's "Create Wentu" button replaces Next, so review's validity here is moot
+  // but kept true so stepValid[currentStep] is always defined.
+  let stepValid = { basics: false, dates: false, timeslots: false, review: true };
 
   $: steps = formData.enableTimeSlots
     ? ALL_STEPS
@@ -63,6 +65,14 @@
     if (completed.has(targetId)) currentStep = targetId;
   }
 
+  // Review's Edit links land here. Unlike Stepper navigation, Edit is allowed
+  // regardless of completed-set membership — the user is on Review, so every
+  // prior step has been visited.
+  function handleReviewEdit(event) {
+    const targetId = event.detail.id;
+    if (steps.some((s) => s.id === targetId)) currentStep = targetId;
+  }
+
   function goHome() {
     dispatch('navigate', { page: 'home' });
   }
@@ -84,10 +94,6 @@
     <Stepper {steps} current={currentStep} {completed} on:navigate={handleStepperNavigate} />
   </div>
 
-  <!--
-    Step content slots. Tasks 6-8 will replace these placeholders with the
-    real step components (StepBasics, StepDates, StepTimeSlots, StepReview).
-  -->
   <section aria-labelledby="step-heading" class="bg-surface-card border border-border-subtle rounded-lg p-4 sm:p-6">
     <h2 id="step-heading" class="text-lg font-semibold text-text-primary mb-4">
       {steps[currentIndex]?.label ?? ''}
@@ -98,14 +104,25 @@
     {:else if currentStep === 'dates'}
       <StepDates bind:data={formData} on:valid={(e) => (stepValid.dates = e.detail)} />
     {:else if currentStep === 'timeslots'}
-      <p class="text-text-muted text-sm">Placeholder — StepTimeSlots lands in Task 8.</p>
+      <StepTimeSlots bind:data={formData} on:valid={(e) => (stepValid.timeslots = e.detail)} />
     {:else if currentStep === 'review'}
-      <p class="text-text-muted text-sm">Placeholder — StepReview lands in Task 8.</p>
+      <StepReview
+        bind:data={formData}
+        on:edit={handleReviewEdit}
+        on:navigate={(e) => dispatch('navigate', e.detail)}
+      />
     {/if}
   </section>
 
-  <div class="flex items-center justify-between mt-6">
-    <Button variant="secondary" disabled={isFirstStep} on:click={goBack}>Back</Button>
-    <Button variant="primary" disabled={isLastStep || !canAdvance} on:click={goNext}>Next</Button>
-  </div>
+  <!-- Review owns its own submit button; hide the shell's Next/Back on Review. -->
+  {#if currentStep !== 'review'}
+    <div class="flex items-center justify-between mt-6">
+      <Button variant="secondary" disabled={isFirstStep} on:click={goBack}>Back</Button>
+      <Button variant="primary" disabled={isLastStep || !canAdvance} on:click={goNext}>Next</Button>
+    </div>
+  {:else}
+    <div class="flex mt-6">
+      <Button variant="secondary" on:click={goBack}>Back</Button>
+    </div>
+  {/if}
 </div>
