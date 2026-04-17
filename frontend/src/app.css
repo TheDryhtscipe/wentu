@@ -58,6 +58,14 @@ input[type="checkbox"] {
   accent-color: var(--accent);
 }
 
+/*
+ * Marker class: `.input` no longer styles elements on its own (its component class
+ * was removed in commit 077b5bf during UI-primitive migration). It is retained only
+ * as a selector hook for `select.input` and `input[type="time"].input` below, which
+ * paint chevron / clock SVG backgrounds. For all other input styling, use the
+ * <Input /> primitive at components/ui/Input.svelte.
+ */
+
 /* Time input styling */
 input[type="time"].input {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3e%3ccircle cx='12' cy='12' r='7' stroke='%23FF9C63' stroke-width='1.5'/%3e%3cpath d='M12 8v4l3 2' stroke='%23FF9C63' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");

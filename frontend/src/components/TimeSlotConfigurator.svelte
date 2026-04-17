@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { Trash2, Plus, X } from 'lucide-svelte';
   import Button from './ui/Button.svelte';
+  import Card from './ui/Card.svelte';
 
   export let date;  // Date object
   export let timeSlots = [];  // ["10:00", "13:00"]
@@ -67,7 +68,7 @@
   $: formattedDate = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 </script>
 
-<div class="border border-accent/20 rounded-lg p-3 sm:p-4 bg-content-bg">
+<Card elevated>
   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 sm:mb-3 gap-1 sm:gap-0">
     <h4 class="text-text-primary font-medium text-sm sm:text-base">{formattedDate}</h4>
     <div class="flex items-center gap-2">
@@ -157,4 +158,4 @@
       {/each}
     </div>
   {/if}
-</div>
+</Card>

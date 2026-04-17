@@ -418,7 +418,7 @@
         {#each getDaysInRange() as day (formatDate(day))}
           {@const dayKey = formatDate(day)}
           {#if excludedDays.includes(dayKey)}
-            <div class="border border-accent/20 rounded-lg p-3 sm:p-4 bg-content-bg/50">
+            <Card elevated>
               <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div>
                   <p class="text-text-secondary text-xs sm:text-sm">Excluded day</p>
@@ -434,7 +434,7 @@
                   Restore day
                 </Button>
               </div>
-            </div>
+            </Card>
           {:else}
             <TimeSlotConfigurator
               date={day}

@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import Button from './ui/Button.svelte';
+  import Input from './ui/Input.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -38,25 +39,21 @@
 <div>
   <div class="grid gap-4 md:grid-cols-2 mb-4">
     <div>
-      <label class="block text-text-primary text-sm font-medium mb-2">Start date</label>
-      <!-- Plain input retained: aria-label not forwarded by Input primitive ($$restProps gap). Tokens upgraded to match primitive styling. -->
-      <input
-        class="w-full px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
+      <Input
+        label="Start date"
         type="date"
+        class="w-full"
         bind:value={startDate}
         on:keydown={handleKeydown}
-        aria-label="Start date"
       />
     </div>
     <div>
-      <label class="block text-text-primary text-sm font-medium mb-2">End date</label>
-      <!-- Plain input retained: aria-label not forwarded by Input primitive ($$restProps gap). Tokens upgraded to match primitive styling. -->
-      <input
-        class="w-full px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
+      <Input
+        label="End date"
         type="date"
+        class="w-full"
         bind:value={endDate}
         on:keydown={handleKeydown}
-        aria-label="End date"
       />
     </div>
   </div>
