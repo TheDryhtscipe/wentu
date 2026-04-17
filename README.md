@@ -78,12 +78,12 @@ docker compose down              # stop everything, keep volume
 docker compose down -v           # teardown and wipe postgres volume
 ```
 
-The frontend image uses `VITE_API_URL` only when you need an explicit API origin preventing
+The frontend image uses `VITE_API_URL` only when you need an explicit API origin, preventing
 same-origin requests. Leave it unset for production behind the nginx `/api` proxy, or override via
 `frontend.build.args` in `docker-compose.yml` if you need a different API endpoint.
 
 > **Note:** The backend Docker build copies both `Cargo.toml` and `Cargo.lock`. Make sure
-> `backend/Cargo.lock` is present in your repository (don’t leave it Git-ignored) before
+> `backend/Cargo.lock` is present in your repository (don't leave it Git-ignored) before
 > building on your deployment server; otherwise the image build will fail.
 
 ## API Endpoints
@@ -127,6 +127,8 @@ wentu_id: UUID (FK)
 name: String
 participant_key: String (secret token)
 joined_at: DateTime
+is_creator: bool (True if this participant created the wentu; used for organiser-only actions like closing voting or viewing the voter list.)
+token_expires_at: DateTime<Utc> (The participant_key token's expiry for auth rotation.)
 ```
 
 ### Ranking (STV vote)
