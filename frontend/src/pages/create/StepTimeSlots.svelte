@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import { Copy } from 'lucide-svelte';
   import TimeSlotConfigurator from '../../components/TimeSlotConfigurator.svelte';
   import TimezonePicker from '../../components/TimezonePicker.svelte';
@@ -11,6 +11,43 @@
   const dispatch = createEventDispatcher();
 
   let showCopyOptions = false;
+  let showFloatingCopyOptions = false;
+
+  // Track whether the inline "Copy times" button is in view. When it scrolls
+  // out of view (and the user has configured at least one day), a floating
+  // variant appears anchored to the right edge so the affordance is always
+  // reachable.
+  let inlineCopyButton = null;
+  let inlineCopyVisible = true;
+  let observer = null;
+
+  onMount(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    observer = new IntersectionObserver(
+      ([entry]) => {
+        inlineCopyVisible = entry.isIntersecting;
+      },
+      { threshold: 0.1 }
+    );
+    return () => {
+      observer?.disconnect();
+      observer = null;
+    };
+  });
+
+  // Re-wire the observer whenever the inline button reference changes.
+  // The button is inside an {#if}, so it mounts/unmounts as the user adds
+  // or clears their first configured slot.
+  $: if (observer && inlineCopyButton) {
+    observer.disconnect();
+    observer.observe(inlineCopyButton);
+    // Assume visible initially — the IntersectionObserver callback fires
+    // asynchronously and will correct this shortly.
+    inlineCopyVisible = true;
+  } else if (observer && !inlineCopyButton) {
+    observer.disconnect();
+    inlineCopyVisible = true;
+  }
 
   function formatDate(d) {
     const y = d.getFullYear();
@@ -122,10 +159,12 @@
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
       <h3 class="text-lg sm:text-xl font-bold text-accent">Configure time slots</h3>
       {#if Object.keys(data.dayTimeSlots).length > 0}
-        <Button variant="secondary" class="text-xs sm:text-sm" on:click={() => (showCopyOptions = !showCopyOptions)}>
-          <Copy size={16} class="inline mr-1" />
-          Copy times
-        </Button>
+        <span bind:this={inlineCopyButton}>
+          <Button variant="secondary" class="text-xs sm:text-sm" on:click={() => (showCopyOptions = !showCopyOptions)}>
+            <Copy size={16} class="inline mr-1" />
+            Copy times
+          </Button>
+        </span>
       {/if}
     </div>
 
@@ -182,3 +221,64 @@
     {/if}
   </Card>
 </div>
+
+<!--
+  Floating "Copy times" affordance. Appears only when:
+  (a) at least one day has been configured (same gate as the inline button),
+  (b) the inline button is not currently in view (IntersectionObserver),
+  (c) the viewport is at least `lg:` — below that, the max-w-2xl content
+      container consumes most of the width and there's no empty space to
+      float into without overlapping content.
+  Its popover anchors to the floating button, on the right edge, so the
+  affordance and its options stay visually co-located.
+-->
+{#if Object.keys(data.dayTimeSlots).length > 0 && !inlineCopyVisible}
+  <div class="hidden lg:block fixed right-4 top-1/2 -translate-y-1/2 z-30">
+    <div class="relative">
+      <Button
+        variant="primary"
+        class="shadow-lg"
+        aria-label="Copy times to other days"
+        on:click={() => (showFloatingCopyOptions = !showFloatingCopyOptions)}
+      >
+        <Copy size={16} class="inline mr-1" />
+        Copy times
+      </Button>
+
+      {#if showFloatingCopyOptions}
+        <div
+          class="absolute right-0 mt-2 w-64 bg-surface-elevated border border-accent/30 rounded-lg p-3 shadow-xl"
+          role="dialog"
+          aria-label="Copy times options"
+        >
+          <p class="text-text-secondary text-xs mb-2">
+            Copy times from {getFirstConfiguredDate()} to:
+          </p>
+          <div class="flex flex-col gap-2">
+            <Button
+              variant="secondary"
+              class="text-sm w-full justify-start"
+              on:click={() => { copyAll(); showFloatingCopyOptions = false; }}
+            >
+              All days
+            </Button>
+            <Button
+              variant="secondary"
+              class="text-sm w-full justify-start"
+              on:click={() => { copyWeekdays(); showFloatingCopyOptions = false; }}
+            >
+              Weekdays
+            </Button>
+            <Button
+              variant="secondary"
+              class="text-sm w-full justify-start"
+              on:click={() => { copyWeekends(); showFloatingCopyOptions = false; }}
+            >
+              Weekends
+            </Button>
+          </div>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
