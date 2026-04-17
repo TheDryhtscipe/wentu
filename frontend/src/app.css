@@ -52,29 +52,6 @@
   outline-offset: 2px;
 }
 
-/* Button base styles */
-@layer components {
-  .btn {
-    @apply px-3 sm:px-4 py-2 rounded font-medium transition-colors focus:outline-offset-2 cursor-pointer text-sm sm:text-base;
-  }
-
-  .btn-primary {
-    @apply btn bg-accent text-dark-bg hover:bg-error;
-  }
-
-  .btn-secondary {
-    @apply btn bg-content-bg text-text-primary border border-accent/50 hover:bg-surface-hover;
-  }
-
-  .input {
-    @apply px-2 sm:px-3 py-2 bg-content-bg border border-accent/30 rounded text-text-primary placeholder-text-secondary focus:border-accent focus:outline-none text-sm sm:text-base;
-  }
-
-  .card {
-    @apply bg-content-bg border border-accent/20 rounded-lg p-3 sm:p-4;
-  }
-}
-
 /* Checkbox styling */
 input[type="checkbox"] {
   cursor: pointer;
