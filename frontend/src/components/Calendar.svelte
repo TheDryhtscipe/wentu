@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import { ChevronLeft, ChevronRight } from 'lucide-svelte';
+  import Button from './ui/Button.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -542,11 +543,12 @@
 
 <div class="calendar-wrapper">
   <div class="calendar-header">
-    <button type="button" on:click={previousMonth} class="btn-secondary px-3 py-1" aria-label="Previous month">
+    <!-- Plain buttons retained: aria-label not forwarded by Button primitive ($$restProps gap). Tokens upgraded to match primitive's secondary variant styling. -->
+    <button type="button" on:click={previousMonth} class="px-3 py-1 rounded font-medium transition-colors focus:outline-offset-2 cursor-pointer bg-action-secondary text-text-primary border border-border-strong hover:bg-action-secondary-hover" aria-label="Previous month">
       <ChevronLeft size={18} />
     </button>
     <h2 class="text-text-primary font-medium">{monthNames[month]} {year}</h2>
-    <button type="button" on:click={nextMonth} class="btn-secondary px-3 py-1" aria-label="Next month">
+    <button type="button" on:click={nextMonth} class="px-3 py-1 rounded font-medium transition-colors focus:outline-offset-2 cursor-pointer bg-action-secondary text-text-primary border border-border-strong hover:bg-action-secondary-hover" aria-label="Next month">
       <ChevronRight size={18} />
     </button>
   </div>
@@ -610,7 +612,7 @@
         </p>
       {/if}
       {#if selectedDates.length > 0}
-        <button on:click={reset} class="btn-secondary px-3 py-1 text-sm">Clear selection</button>
+        <Button variant="secondary" class="px-3 py-1 text-sm" on:click={reset}>Clear selection</Button>
       {/if}
     {:else}
       {#if startDate}
@@ -623,7 +625,7 @@
         </p>
       {/if}
       {#if startDate || endDate}
-        <button on:click={reset} class="btn-secondary px-3 py-1 text-sm">Clear</button>
+        <Button variant="secondary" class="px-3 py-1 text-sm" on:click={reset}>Clear</Button>
       {/if}
     {/if}
   </div>

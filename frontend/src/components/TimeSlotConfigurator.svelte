@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import { Trash2, Plus, X } from 'lucide-svelte';
+  import Button from './ui/Button.svelte';
 
   export let date;  // Date object
   export let timeSlots = [];  // ["10:00", "13:00"]
@@ -89,9 +90,9 @@
     <p class="text-text-secondary text-xs sm:text-sm mb-2">Quick select:</p>
     <div class="flex gap-2 flex-wrap">
       {#each quickTimes as time}
-        <button type="button" class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1" on:click={() => addTimeSlot(time)} disabled={timeSlots.length >= 3}>
+        <Button type="button" variant="secondary" class="text-xs sm:text-sm px-2 sm:px-3 py-1" on:click={() => addTimeSlot(time)} disabled={timeSlots.length >= 3}>
           {time}
-        </button>
+        </Button>
       {/each}
     </div>
   </div>
@@ -100,18 +101,19 @@
   <div class="mb-2 sm:mb-3">
     <label for="custom-time" class="text-text-secondary text-xs sm:text-sm mb-1 block">Custom time (HH:MM format):</label>
     <div class="flex gap-2">
+      <!-- Plain input retained: title attribute not forwarded by Input primitive ($$restProps gap). Class="input" kept as marker so input[type="time"].input CSS hook applies the clock SVG. Tokens upgraded to match primitive styling. -->
       <input
         id="custom-time"
         type="time"
-        class="input flex-1"
+        class="input flex-1 px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
         bind:value={newTime}
         disabled={timeSlots.length >= 3}
         placeholder="14:30"
         title="Enter time in HH:MM format (e.g., 14:30)"
       />
-      <button type="button" class="btn-secondary px-2 sm:px-3" on:click={addCustomTime} disabled={!newTime || timeSlots.length >= 3}>
+      <Button type="button" variant="secondary" class="px-2 sm:px-3" on:click={addCustomTime} disabled={!newTime || timeSlots.length >= 3}>
         <Plus size={18} />
-      </button>
+      </Button>
     </div>
   </div>
 
@@ -122,19 +124,20 @@
       {#each timeSlots as slot, i}
         {#if editingIndex === i}
           <div class="flex items-center gap-2 bg-dark-bg p-2 rounded">
+            <!-- Plain input retained: title attribute not forwarded by Input primitive ($$restProps gap). Class="input" kept as marker so input[type="time"].input CSS hook applies the clock SVG. Tokens upgraded to match primitive styling. -->
             <input
               type="time"
-              class="input flex-1"
+              class="input flex-1 px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
               bind:value={editTime}
               placeholder="14:30"
               title="Enter time in HH:MM format (e.g., 14:30)"
             />
-            <button type="button" class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1" on:click={saveEdit}>
+            <Button type="button" variant="secondary" class="text-xs sm:text-sm px-2 sm:px-3 py-1" on:click={saveEdit}>
               Save
-            </button>
-            <button type="button" class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1" on:click={cancelEdit}>
+            </Button>
+            <Button type="button" variant="secondary" class="text-xs sm:text-sm px-2 sm:px-3 py-1" on:click={cancelEdit}>
               Cancel
-            </button>
+            </Button>
           </div>
         {:else}
           <div class="flex items-center justify-between bg-dark-bg p-2 rounded gap-2">

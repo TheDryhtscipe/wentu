@@ -2,6 +2,7 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import { X, Crown } from 'lucide-svelte';
   import { getTrackedWentus, removeTrackedWentu } from '../lib/wentuTracker.js';
+  import Card from './ui/Card.svelte';
 
   const dispatch = createEventDispatcher();
   let trackedWentus = [];
@@ -22,7 +23,7 @@
 </script>
 
 {#if trackedWentus.length > 0}
-  <div class="card">
+  <Card>
     <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">
       Your Wentus
     </h3>
@@ -58,5 +59,5 @@
         </div>
       {/each}
     </div>
-  </div>
+  </Card>
 {/if}

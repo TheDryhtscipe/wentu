@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { XCircle, Info, ChevronDown, ChevronRight, Users } from 'lucide-svelte';
   import { api } from '../lib/api.js';
+  import Card from './ui/Card.svelte';
 
   export let results = null;
   export let wentu = null;
@@ -42,7 +43,7 @@
 </script>
 
 {#if results}
-  <div class="card">
+  <Card>
     <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Election Results</h3>
 
     <!-- Turnout Information -->
@@ -164,5 +165,5 @@
         </div>
       </div>
     {/if}
-  </div>
+  </Card>
 {/if}

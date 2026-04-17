@@ -3,6 +3,7 @@
   import { flip } from 'svelte/animate';
   import { X, RotateCcw } from 'lucide-svelte';
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
+  import Button from './ui/Button.svelte';
 
   export let timeSlots = [];
   export let dateLabel = '';
@@ -171,11 +172,12 @@
 
   <!-- Action buttons -->
   <div class="flex gap-3 mt-6">
-    <button class="btn-secondary flex-1" on:click={cancel} type="button">
+    <Button variant="secondary" class="flex-1" on:click={cancel} type="button">
       Cancel
-    </button>
-    <button
-      class="btn-primary flex-1"
+    </Button>
+    <Button
+      variant="primary"
+      class="flex-1"
       on:click={confirm}
       type="button"
     >
@@ -184,6 +186,6 @@
       {:else}
         Remove all
       {/if}
-    </button>
+    </Button>
   </div>
 </div>

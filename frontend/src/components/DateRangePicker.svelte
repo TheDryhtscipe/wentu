@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher } from 'svelte';
+  import Button from './ui/Button.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -38,8 +39,9 @@
   <div class="grid gap-4 md:grid-cols-2 mb-4">
     <div>
       <label class="block text-text-primary text-sm font-medium mb-2">Start date</label>
+      <!-- Plain input retained: aria-label not forwarded by Input primitive ($$restProps gap). Tokens upgraded to match primitive styling. -->
       <input
-        class="input w-full"
+        class="w-full px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
         type="date"
         bind:value={startDate}
         on:keydown={handleKeydown}
@@ -48,8 +50,9 @@
     </div>
     <div>
       <label class="block text-text-primary text-sm font-medium mb-2">End date</label>
+      <!-- Plain input retained: aria-label not forwarded by Input primitive ($$restProps gap). Tokens upgraded to match primitive styling. -->
       <input
-        class="input w-full"
+        class="w-full px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
         type="date"
         bind:value={endDate}
         on:keydown={handleKeydown}
@@ -62,7 +65,7 @@
     <p class="text-error text-sm mb-4">{error}</p>
   {/if}
 
-  <button class="btn-secondary w-full" on:click={addDateRange}>
+  <Button variant="secondary" fullWidth on:click={addDateRange}>
     Add date range
-  </button>
+  </Button>
 </div>
