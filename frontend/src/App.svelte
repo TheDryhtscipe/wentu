@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Home from './pages/Home.svelte';
-  import CreateWentu from './pages/CreateWentu.svelte';
+  import CreateShell from './pages/create/CreateShell.svelte';
   import ViewWentu from './pages/ViewWentu.svelte';
   import ToastHost from './components/ui/ToastHost.svelte';
   import './app.css';
@@ -92,7 +92,7 @@
     {#if currentPage === 'home'}
       <Home on:navigate={(e) => navigate(e.detail.page, e.detail.params)} />
     {:else if currentPage === 'create'}
-      <CreateWentu on:navigate={(e) => navigate(e.detail.page, e.detail.params)} />
+      <CreateShell on:navigate={(e) => navigate(e.detail.page, e.detail.params)} />
     {:else if currentPage === 'view'}
       <ViewWentu
         slug={params.slug}
