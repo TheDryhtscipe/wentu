@@ -3,13 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --dark-bg: #2B1313;
-  --content-bg: #132B13;
-  --text-primary: #00FFBB;
-  --text-secondary: #7EFDD1;
-  --accent: #E2ABF8;
-  --success: #63E6BE;
-  --error: #FF909F;
+  /* Palette primitives (aligned with tailwind.config.js) */
+  --dark-bg: #0c1815;        /* pine-teal-950 */
+  --content-bg: #0a1a0d;     /* hunter-green-950 */
+  --text-primary: #99ccc2;   /* pine-teal-300 */
+  --text-secondary: #77bbad; /* pine-teal-400 */
+  --accent: #faa005;         /* sunflower-gold-500 */
+  --success: #47b860;        /* hunter-green-500 */
+  --error: #d590a0;          /* wine-plum-300 */
+  --surface-hover: #11221f;  /* pine-teal-900 */
+
+  /* Semantic tokens — prefer these over primitives for role-based styling */
+  --action-primary: var(--accent);         /* sunflower-gold-500 (= --accent) */
+  --action-primary-hover: #fbb337;   /* sunflower-gold-400 — brighter hover */
+  --action-secondary: var(--content-bg);       /* hunter-green-950 (= --content-bg) */
+  --action-secondary-hover: var(--surface-hover); /* pine-teal-900 (= --surface-hover) */
+  --surface-page: var(--dark-bg);           /* pine-teal-950 (= --dark-bg) */
+  --surface-card: var(--content-bg);           /* hunter-green-950 (= --content-bg) */
+  --surface-elevated: #0e2513;       /* hunter-green-900 — card-on-card tier */
+  --text-muted: #55aa99;             /* pine-teal-500 — dimmer than --text-secondary */
+  --focus-ring: var(--accent);             /* sunflower-gold-500 (= --accent) */
+  --border-subtle: rgba(250, 160, 5, 0.20);
+  --border-strong: rgba(250, 160, 5, 0.50);
 }
 
 /* Custom scrollbar */

@@ -78,6 +78,19 @@ export default {
       'success': '#47b860',        // hunter-green-500 - Success state (7.17:1 contrast)
       'error': '#d590a0',          // wine-plum-300 - Error state (7.20:1 contrast)
       'surface-hover': '#11221f',  // pine-teal-900 - Hover for secondary surfaces
+      // Semantic tokens (v2 UX renovation) — prefer these over primitives for role-based styling.
+      // Keep in sync with :root CSS variables in src/app.css.
+      'action-primary': '#faa005',         // sunflower-gold-500 (= accent)
+      'action-primary-hover': '#fbb337',   // sunflower-gold-400 — brighter hover
+      'action-secondary': '#0a1a0d',       // hunter-green-950 (= content-bg)
+      'action-secondary-hover': '#11221f', // pine-teal-900 (= surface-hover)
+      'surface-page': '#0c1815',           // pine-teal-950 (= dark-bg)
+      'surface-card': '#0a1a0d',           // hunter-green-950 (= content-bg)
+      'surface-elevated': '#0e2513',       // hunter-green-900 — card-on-card tier
+      'text-muted': '#55aa99',             // pine-teal-500 — dimmer than text-secondary
+      'focus-ring': '#faa005',             // sunflower-gold-500 (= accent)
+      'border-subtle': 'rgba(250, 160, 5, 0.20)',
+      'border-strong': 'rgba(250, 160, 5, 0.50)',
       'transparent': 'transparent',
       'white': '#ffffff',
     },
