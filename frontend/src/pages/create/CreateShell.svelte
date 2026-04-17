@@ -3,6 +3,7 @@
   import { ArrowLeft } from 'lucide-svelte';
   import Stepper from '../../components/ui/Stepper.svelte';
   import Button from '../../components/ui/Button.svelte';
+  import StepBasics from './StepBasics.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -31,6 +32,9 @@
 
   let currentStep = 'basics';
   let completed = new Set();
+  // Per-step validity — a step reports valid=true when its Next button may be enabled.
+  // Placeholders (Tasks 7-8) report valid=true until they ship real validation.
+  let stepValid = { basics: false, dates: true, timeslots: true, review: true };
 
   $: steps = formData.enableTimeSlots
     ? ALL_STEPS
@@ -39,10 +43,11 @@
   $: currentIndex = steps.findIndex((s) => s.id === currentStep);
   $: isFirstStep = currentIndex === 0;
   $: isLastStep = currentIndex === steps.length - 1;
+  $: canAdvance = stepValid[currentStep] ?? false;
 
   function goNext() {
     const next = steps[currentIndex + 1];
-    if (!next) return;
+    if (!next || !canAdvance) return;
     completed = new Set([...completed, currentStep]);
     currentStep = next.id;
   }
@@ -88,7 +93,7 @@
     </h2>
 
     {#if currentStep === 'basics'}
-      <p class="text-text-muted text-sm">Placeholder — StepBasics lands in Task 6.</p>
+      <StepBasics bind:data={formData} on:valid={(e) => (stepValid.basics = e.detail)} />
     {:else if currentStep === 'dates'}
       <p class="text-text-muted text-sm">Placeholder — StepDates lands in Task 7.</p>
       <label class="mt-4 flex items-center gap-2 text-sm text-text-secondary">
@@ -104,6 +109,6 @@
 
   <div class="flex items-center justify-between mt-6">
     <Button variant="secondary" disabled={isFirstStep} on:click={goBack}>Back</Button>
-    <Button variant="primary" disabled={isLastStep} on:click={goNext}>Next</Button>
+    <Button variant="primary" disabled={isLastStep || !canAdvance} on:click={goNext}>Next</Button>
   </div>
 </div>
