@@ -6,6 +6,8 @@
   import TimeOrderingModal from '../components/TimeOrderingModal.svelte';
   import STVResults from '../components/STVResults.svelte';
   import ExpiryTimer from '../components/ExpiryTimer.svelte';
+  import Button from '../components/ui/Button.svelte';
+  import Card from '../components/ui/Card.svelte';
   import { api } from '../lib/api.js';
   import { addTrackedWentu, getTrackedWentu } from '../lib/wentuTracker.js';
 
@@ -424,21 +426,21 @@
   </button>
 
   {#if loading}
-    <div class="card text-center">
+    <Card class="text-center">
       <div class="flex items-center justify-center gap-2 text-text-secondary text-sm sm:text-base">
         <Loader2 size={20} class="animate-spin" />
         <p>Loading...</p>
       </div>
-    </div>
+    </Card>
   {:else if error && !wentu}
-    <div class="card bg-error/10 border-error/50">
+    <Card class="bg-error/10 border-error/50">
       <div class="flex items-center gap-2 text-error text-sm">
         <AlertCircle size={20} class="flex-shrink-0" />
         <p>{error}</p>
       </div>
-    </div>
+    </Card>
   {:else if wentu}
-    <div class="card mb-4 sm:mb-6">
+    <Card class="mb-4 sm:mb-6">
       <div class="flex flex-col sm:flex-row justify-between items-start mb-3 sm:mb-4 gap-3 sm:gap-0">
         <div class="flex-1">
           <h2 class="text-2xl sm:text-3xl font-bold text-accent">{wentu.title}</h2>
@@ -456,9 +458,10 @@
           <div class="flex-1 bg-content-bg rounded p-2 sm:p-3 border border-accent/30">
             <p class="text-accent font-mono text-sm sm:text-base break-all select-all">{window.location.origin}/wentu/{wentu.slug}</p>
           </div>
+          <!-- Plain button retained: title attribute not forwarded by Button primitive ($$restProps gap). Tokens upgraded to match primitive's secondary variant styling. -->
           <button
             on:click={copyToClipboard}
-            class="btn-secondary px-3 py-2 flex items-center justify-center gap-2 text-sm flex-shrink-0"
+            class="px-3 py-2 flex items-center justify-center gap-2 text-sm flex-shrink-0 rounded font-medium transition-colors focus:outline-offset-2 cursor-pointer bg-action-secondary text-text-primary border border-border-strong hover:bg-action-secondary-hover"
             title="Copy link to clipboard"
           >
             {#if copied}
@@ -486,13 +489,14 @@
           <p class="text-accent">{new Date(wentu.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
         </div>
       </div>
-    </div>
+    </Card>
 
     {#if showJoinForm}
-      <div class="card mb-4 sm:mb-6">
+      <Card class="mb-4 sm:mb-6">
         <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Join as participant</h3>
+        <!-- Plain input retained: Input primitive does not forward $$restProps, so aria-label cannot pass through. Tokens upgraded to match primitive styling. -->
         <input
-          class="input w-full mb-3 sm:mb-4"
+          class="w-full mb-3 sm:mb-4 px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
           type="text"
           placeholder="Your name"
           bind:value={participantName}
@@ -501,10 +505,10 @@
         {#if error}
           <p class="text-error text-xs sm:text-sm mb-3 sm:mb-4">{error}</p>
         {/if}
-        <button class="btn-primary w-full" on:click={joinWentu}>Join Wentu</button>
-      </div>
+        <Button variant="primary" fullWidth on:click={joinWentu}>Join Wentu</Button>
+      </Card>
     {:else}
-      <div class="card mb-4 sm:mb-6">
+      <Card class="mb-4 sm:mb-6">
         <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Your preferences</h3>
         {#if deadlineReached}
           <div class="flex items-center gap-2 text-error text-xs sm:text-sm mb-3 sm:mb-4">
@@ -568,9 +572,10 @@
                       {new Date(removed.end).toLocaleDateString()}
                     </p>
                   </div>
+                  <!-- Plain button retained: aria-label not forwarded by Button primitive ($$restProps gap). Tokens upgraded to match primitive's secondary variant styling. -->
                   <button
                     on:click={() => restorePreference(removed.id)}
-                    class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 flex-shrink-0"
+                    class="text-xs sm:text-sm px-2 sm:px-3 py-1.5 flex-shrink-0 rounded font-medium transition-colors focus:outline-offset-2 cursor-pointer bg-action-secondary text-text-primary border border-border-strong hover:bg-action-secondary-hover"
                     aria-label="Restore {removed.label} to preferences"
                   >
                     Restore
@@ -593,19 +598,19 @@
         {/if}
 
         {#if !deadlineReached}
-          <button class="btn-primary w-full mt-3 sm:mt-4" on:click={submitPreferences}>
+          <Button variant="primary" fullWidth class="mt-3 sm:mt-4" on:click={submitPreferences}>
             Submit preferences
-          </button>
+          </Button>
         {/if}
-      </div>
+      </Card>
 
       {#if loadingResults}
-        <div class="card">
+        <Card>
           <div class="flex items-center justify-center gap-2 text-text-secondary">
             <Loader2 size={20} class="animate-spin" />
             <p>Loading election results...</p>
           </div>
-        </div>
+        </Card>
       {:else if stvResults}
         <STVResults
           results={stvResults}
