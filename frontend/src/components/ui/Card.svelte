@@ -9,6 +9,7 @@
 <script>
   export let elevated = false;
   export let padded = true;
+  export let element = undefined;
   let className = '';
   export { className as class };
 
@@ -16,6 +17,10 @@
   $: paddingClass = padded ? 'p-3 sm:p-4' : '';
 </script>
 
-<div class="rounded-lg border border-border-subtle {surfaceClass} {paddingClass} {className}">
+<div
+  {...$$restProps}
+  bind:this={element}
+  class="rounded-lg border border-border-subtle {surfaceClass} {paddingClass} {className}"
+>
   <slot />
 </div>

@@ -40,6 +40,7 @@
 </script>
 
 <button
+  {...$$restProps}
   {type}
   disabled={isDisabled}
   aria-busy={loading ? 'true' : undefined}
