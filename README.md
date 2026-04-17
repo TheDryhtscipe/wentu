@@ -6,10 +6,10 @@ A lightweight, ephemeral web app for scheduling meetings using Single Transferab
 
 - **Create wentus**: Set title, description, and date options
 - **Share & join**: No registration, just share the wentu code
-- **Drag-drop preferences**: Intuitively order dates by preference
+- **Drag-drop ranking**: Intuitively order dates by preference
 - **STV voting**: Fair date selection algorithm eliminates lowest-voted options
-- **Live expiry**: All data deleted after 7 days (default)
-- **Dark red theme**: High-contrast design for accessibility
+- **Live expiry**: All data deleted 7 days after voting closes (default)
+- **Dark theme**: Designed for high contrast and accessibility
 - **Mobile-responsive**: Full touch support with responsive design (320px to tablets)
 - **Lean code**: Minimal dependencies, focus on performance
 
@@ -22,7 +22,7 @@ A lightweight, ephemeral web app for scheduling meetings using Single Transferab
 - **Tokio** (async runtime)
 
 ### Frontend
-- **Svelte** (lean, reactive framework)
+- **Svelte** (currently v5 in legacy-syntax mode)
 - **Vite** (fast bundler)
 - **Tailwind CSS** (utility-first styling)
 - **svelte-dnd-action** (drag-and-drop)
@@ -91,11 +91,13 @@ same-origin requests. Leave it unset for production behind the nginx `/api` prox
 ### Wentu Management
 - `POST /api/wentu` - Create new wentu
 - `GET /api/wentu/:slug` - Get wentu details
-- `POST /api/wentu/:slug/close` - Close poll early (creator only)
+- `POST /api/wentu/:slug/close` - Close voting early (organiser only)
 
 ### Participation
 - `POST /api/wentu/:slug/join` - Join as participant
-- `POST /api/wentu/:slug/preferences` - Submit vote preferences
+- `POST /api/wentu/:slug/preferences` - Submit or update a ranking (vote)
+- `POST /api/wentu/:slug/has-voted` - Check whether a participant has voted
+- `POST /api/wentu/:slug/voters` - List participants who have voted
 
 ### Results
 - `GET /api/wentu/:slug/stv-results` - Get current STV voting results
@@ -107,11 +109,15 @@ same-origin requests. Leave it unset for production behind the nginx `/api` prox
 id: UUID
 slug: String (unique, shareable code)
 title: String
+description: String?
 creator_name: String (no accounts)
+creator_key: String (secret token, organiser only)
 created_at: DateTime
-expires_at: DateTime
+pref_deadline: DateTime (voting closes at this time)
+expires_at: DateTime (all data deleted at this time)
 status: open | closed | expired
 date_options: DateRange[]
+timezone: String?
 ```
 
 ### Participant
@@ -123,7 +129,7 @@ participant_key: String (secret token)
 joined_at: DateTime
 ```
 
-### Ranking (STV preferences)
+### Ranking (STV vote)
 ```
 participant_id: UUID (FK)
 date_option_id: UUID (FK)
@@ -149,17 +155,22 @@ Example:
 
 ## Color Palette
 
-| Name | Color | Usage |
-|------|-------|-------|
-| Dark BG | #2B1313 | Page background |
-| Content BG | #3C1A1A | Cards, inputs |
-| Text Primary | #FCEDEA | Main text (13.6:1 vs content) |
-| Text Secondary | #E6BEB4 | Secondary text (9.1:1 vs content) |
-| Accent | #FF9C63 | Buttons, highlights (7.5:1 vs content) |
-| Success | #63E6BE | Confirmation states |
-| Error | #FF909F | Errors, warnings (7.2:1 vs content) |
+| Name | Hex | Tailwind class | Role |
+|------|-----|----------------|------|
+| Page background | `#0c1815` | `bg-dark-bg` / `bg-surface-page` | Top-level page surface |
+| Card surface | `#0a1a0d` | `bg-content-bg` / `bg-surface-card` | Cards, inputs, default containers |
+| Elevated surface | `#0e2513` | `bg-surface-elevated` | Nested panels inside cards |
+| Text primary | `#99ccc2` | `text-text-primary` | Body copy and primary headings |
+| Text secondary | `#77bbad` | `text-text-secondary` | Supporting text, labels |
+| Text muted | `#55aa99` | `text-text-muted` | Low-emphasis text (timestamps, hints) |
+| Accent / Action primary | `#faa005` | `bg-accent` / `bg-action-primary` | Primary buttons, highlights, focus rings |
+| Action primary hover | `#fbb337` | `hover:bg-action-primary-hover` | Hover state for primary buttons |
+| Success | `#47b860` | `text-success` / `bg-success` | Confirmation states |
+| Error | `#d590a0` | `text-error` / `bg-error` | Error and destructive messaging |
 
-Text/foreground colors keep at least a 7:1 contrast ratio against the content background.
+Full palette (5 ramps plus semantics) defined in `frontend/tailwind.config.js`. Canonical docs: `docs/reference/wentu-design-tokens.md`.
+
+Text and action colors meet WCAG AA against surface backgrounds; most meet AAA.
 
 ## Development
 
