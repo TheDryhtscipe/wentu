@@ -4,6 +4,9 @@
   import Calendar from '../components/Calendar.svelte';
   import TimeSlotConfigurator from '../components/TimeSlotConfigurator.svelte';
   import TimezonePicker from '../components/TimezonePicker.svelte';
+  import Button from '../components/ui/Button.svelte';
+  import Input from '../components/ui/Input.svelte';
+  import Card from '../components/ui/Card.svelte';
   import { api } from '../lib/api.js';
   import { addTrackedWentu } from '../lib/wentuTracker.js';
 
@@ -290,13 +293,13 @@
 
   <h2 class="text-2xl sm:text-3xl font-bold text-accent mb-6 sm:mb-8">Create a new Wentu</h2>
 
-  <div class="card mb-4 sm:mb-6">
+  <Card class="mb-4 sm:mb-6">
     <div class="mb-4 sm:mb-6">
       <label class="flex items-center gap-2 text-text-primary font-medium mb-2 text-sm sm:text-base">
         <FileText size={18} class="flex-shrink-0" />
         Title <span class="text-error">*</span>
       </label>
-      <input class="input w-full" type="text" placeholder="Team offsite, Q1 planning, etc." bind:value={title} />
+      <Input class="w-full" type="text" placeholder="Team offsite, Q1 planning, etc." bind:value={title} />
     </div>
 
     <div class="mb-4 sm:mb-6">
@@ -304,8 +307,9 @@
         <MessageSquare size={18} class="flex-shrink-0" />
         Description
       </label>
+      <!-- Plain textarea retained: Input primitive does not support textarea elements. Tokens upgraded to match primitive styling. -->
       <textarea
-        class="input w-full"
+        class="w-full px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
         placeholder="Optional details about the meeting"
         rows="3"
         bind:value={description}
@@ -317,7 +321,7 @@
         <User size={18} class="flex-shrink-0" />
         Your name <span class="text-error">*</span>
       </label>
-      <input class="input w-full" type="text" placeholder="Alice" bind:value={creatorName} />
+      <Input class="w-full" type="text" placeholder="Alice" bind:value={creatorName} />
     </div>
 
     <div class="mb-4 sm:mb-6">
@@ -327,31 +331,33 @@
       </label>
       <p class="text-text-secondary text-xs sm:text-sm mb-2">Participants can edit their preferences until this date and time</p>
       <div class="flex flex-col sm:flex-row gap-2">
-        <input class="input flex-1" type="date" bind:value={prefDeadline} />
-        <select class="input w-full sm:w-auto" bind:value={prefDeadlineTime}>
+        <Input class="flex-1" type="date" bind:value={prefDeadline} />
+        <!-- Plain select retained: Input primitive is for <input> only; select requires the `input` marker class so `select.input` CSS hook applies the dropdown chevron SVG. -->
+        <select class="input w-full sm:w-auto px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base" bind:value={prefDeadlineTime}>
           {#each timeOptions as opt}
             <option value={opt.value}>{opt.label}</option>
           {/each}
         </select>
       </div>
     </div>
-  </div>
+  </Card>
 
   <!-- Calendar -->
-  <div class="card mb-4 sm:mb-6">
+  <Card class="mb-4 sm:mb-6">
     <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Date range</h3>
     <p class="text-text-secondary text-xs sm:text-sm mb-3 sm:mb-4">Select the date range. Participants will vote on which individual days they prefer within this range.</p>
     <Calendar on:daterange={(e) => setDateRange(e.detail.start, e.detail.end)} mode="range" />
-  </div>
+  </Card>
 
   <!-- Selected range -->
   {#if dateRangeStart && dateRangeEnd}
-    <div class="card mb-4 sm:mb-6">
+    <Card class="mb-4 sm:mb-6">
       <h3 class="text-base sm:text-lg font-bold text-accent mb-3 sm:mb-4">Selected date range</h3>
       <div class="bg-dark-bg p-3 rounded flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
         <p class="text-text-primary font-medium text-sm sm:text-base">
           {dateRangeStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} - {dateRangeEnd.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
         </p>
+        <!-- Plain button retained: non-standard variant (text-error bg-error/10) not covered by Button primitive. -->
         <button
           on:click={() => { dateRangeStart = null; dateRangeEnd = null; }}
           class="text-error hover:text-accent text-xs sm:text-sm px-3 py-1 bg-error/10 rounded"
@@ -359,11 +365,11 @@
           Clear
         </button>
       </div>
-    </div>
+    </Card>
   {/if}
 
   <!-- Time slot configuration checkbox -->
-  <div class="card mb-4 sm:mb-6">
+  <Card class="mb-4 sm:mb-6">
     <label class="flex items-start gap-3 cursor-pointer">
       <input
         type="checkbox"
@@ -376,23 +382,23 @@
         <p class="text-text-secondary text-xs sm:text-sm mt-1">Add up to 3 start times per day (e.g., 10am, 1pm, 7pm)</p>
       </div>
     </label>
-  </div>
+  </Card>
 
   {#if enableTimeSlots && dateRangeStart && dateRangeEnd}
     <!-- Timezone picker -->
-    <div class="card mb-4 sm:mb-6">
+    <Card class="mb-4 sm:mb-6">
       <TimezonePicker bind:selectedTimezone={timezone} on:change={(e) => timezone = e.detail} />
-    </div>
+    </Card>
 
     <!-- Time slot configuration -->
-    <div class="card mb-4 sm:mb-6">
+    <Card class="mb-4 sm:mb-6">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
         <h3 class="text-lg sm:text-xl font-bold text-accent">Configure time slots</h3>
         {#if Object.keys(dayTimeSlots).length > 0}
-          <button class="btn-secondary text-xs sm:text-sm" on:click={() => showCopyOptions = !showCopyOptions}>
+          <Button variant="secondary" class="text-xs sm:text-sm" on:click={() => showCopyOptions = !showCopyOptions}>
             <Copy size={16} class="inline mr-1" />
             Copy times
-          </button>
+          </Button>
         {/if}
       </div>
 
@@ -401,9 +407,9 @@
         <div class="bg-dark-bg p-3 sm:p-4 rounded mb-3 sm:mb-4 border border-accent/30">
           <p class="text-text-secondary text-xs sm:text-sm mb-2 sm:mb-3">Copy times from {getFirstConfiguredDate()} to:</p>
           <div class="flex gap-2 flex-wrap">
-            <button class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2" on:click={copyToAllDays}>All days</button>
-            <button class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2" on:click={copyToWeekdays}>Weekdays</button>
-            <button class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2" on:click={copyToWeekends}>Weekends</button>
+            <Button variant="secondary" class="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2" on:click={copyToAllDays}>All days</Button>
+            <Button variant="secondary" class="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2" on:click={copyToWeekdays}>Weekdays</Button>
+            <Button variant="secondary" class="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2" on:click={copyToWeekends}>Weekends</Button>
           </div>
         </div>
       {/if}
@@ -420,12 +426,13 @@
                     {day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                   </p>
                 </div>
-                <button
-                  class="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1"
+                <Button
+                  variant="secondary"
+                  class="text-xs sm:text-sm px-2 sm:px-3 py-1"
                   on:click={() => restoreDay(day)}
                 >
                   Restore day
-                </button>
+                </Button>
               </div>
             </div>
           {:else}
@@ -439,22 +446,23 @@
           {/if}
         {/each}
       </div>
-    </div>
+    </Card>
   {/if}
 
   {#if error}
-    <div class="card bg-error/10 border-error/50 mb-4 sm:mb-6">
+    <Card class="bg-error/10 border-error/50 mb-4 sm:mb-6">
       <div class="flex items-center gap-2 text-error text-sm">
         <AlertCircle size={20} class="flex-shrink-0" />
         <p>{error}</p>
       </div>
-    </div>
+    </Card>
   {/if}
 
   <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
-    <button class="btn-secondary flex-1" on:click={goHome}>Cancel</button>
-    <button
-      class="btn-primary flex-1"
+    <Button variant="secondary" class="flex-1" on:click={goHome}>Cancel</Button>
+    <Button
+      variant="primary"
+      class="flex-1"
       on:click={submitCreate}
       disabled={loading || !title || !creatorName || !dateRangeStart || !dateRangeEnd || !prefDeadline}
     >
@@ -466,6 +474,6 @@
       {:else}
         Create Wentu
       {/if}
-    </button>
+    </Button>
   </div>
 </div>
