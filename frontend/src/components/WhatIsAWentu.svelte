@@ -33,7 +33,7 @@
     <div class="flex-1">
       <h3 class="text-sm font-semibold text-text-primary mb-1">What is a Wentu?</h3>
       <p class="text-sm text-text-secondary">
-        A wentu lets a group rank dates for a meeting and picks the one most people agree on. No accounts — share the link, everyone ranks.
+        A wentu lets a group rank dates for a meeting. No accounts needed: just share the link, and everyone can rank the options.
       </p>
       <div class="mt-3">
         <Button variant="ghost" size="sm" on:click={dismiss}>Got it</Button>
