@@ -4,6 +4,7 @@
   import Stepper from '../../components/ui/Stepper.svelte';
   import Button from '../../components/ui/Button.svelte';
   import StepBasics from './StepBasics.svelte';
+  import StepDates from './StepDates.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -33,8 +34,8 @@
   let currentStep = 'basics';
   let completed = new Set();
   // Per-step validity — a step reports valid=true when its Next button may be enabled.
-  // Placeholders (Tasks 7-8) report valid=true until they ship real validation.
-  let stepValid = { basics: false, dates: true, timeslots: true, review: true };
+  // Placeholders (Task 8) report valid=true until they ship real validation.
+  let stepValid = { basics: false, dates: false, timeslots: true, review: true };
 
   $: steps = formData.enableTimeSlots
     ? ALL_STEPS
@@ -95,11 +96,7 @@
     {#if currentStep === 'basics'}
       <StepBasics bind:data={formData} on:valid={(e) => (stepValid.basics = e.detail)} />
     {:else if currentStep === 'dates'}
-      <p class="text-text-muted text-sm">Placeholder — StepDates lands in Task 7.</p>
-      <label class="mt-4 flex items-center gap-2 text-sm text-text-secondary">
-        <input type="checkbox" bind:checked={formData.enableTimeSlots} />
-        Add time slots (enables the Time slots step)
-      </label>
+      <StepDates bind:data={formData} on:valid={(e) => (stepValid.dates = e.detail)} />
     {:else if currentStep === 'timeslots'}
       <p class="text-text-muted text-sm">Placeholder — StepTimeSlots lands in Task 8.</p>
     {:else if currentStep === 'review'}
