@@ -55,8 +55,8 @@
         opts.push({ value, label });
       }
     }
-    // Matches legacy CreateWentu: appends an explicit "end of day" sentinel
-    // so chips that default to 23:59 have a matching <option>.
+    // Explicit end-of-day option so chips defaulting to 23:59 have a
+    // matching <option> on the custom reveal.
     opts.push({ value: '23:59', label: '11:59 PM (end of day)' });
     return opts;
   })();

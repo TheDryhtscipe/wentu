@@ -10,7 +10,6 @@
 
   const dispatch = createEventDispatcher();
 
-  // formData mirrors the shape CreateWentu.svelte submits today.
   let formData = {
     title: '',
     description: '',

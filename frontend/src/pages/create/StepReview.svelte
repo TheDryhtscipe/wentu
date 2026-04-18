@@ -69,8 +69,6 @@
   async function submit() {
     error = '';
 
-    // Matches CreateWentu.svelte submitCreate (lines 182-273): same gate,
-    // same body shape, same tracker call, same navigate payload.
     if (!data.title || !data.creatorName || !data.dateRangeStart || !data.dateRangeEnd || !data.prefDeadline || !data.prefDeadlineTime) {
       error = 'Title, name, date range, and voting-closes time are required.';
       return;
@@ -104,10 +102,8 @@
         Object.entries(data.dayTimeSlots).filter(([key]) => includedKeys.has(key))
       );
 
-      // Legacy UTC-midnight conversion: Calendar returns local midnight; the
-      // backend stores dates as UTC midnight to avoid tz drift. Preserve
-      // identical semantics here — this block mirrors CreateWentu.svelte
-      // lines 227-236.
+      // Calendar returns local midnight; backend stores dates as UTC
+      // midnight to avoid tz drift.
       const startUTC = new Date(Date.UTC(
         data.dateRangeStart.getFullYear(),
         data.dateRangeStart.getMonth(),
