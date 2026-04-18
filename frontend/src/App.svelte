@@ -106,7 +106,7 @@
   </main>
 
   <footer class="bg-content-bg border-t border-accent/30 py-3 px-4 sm:py-4 sm:px-6 text-center text-text-secondary text-xs sm:text-sm">
-    <p>No accounts, no persistence. Everything expires.</p>
+    <p>No accounts. All data deleted 7 days after voting closes.</p>
   </footer>
 </div>
 

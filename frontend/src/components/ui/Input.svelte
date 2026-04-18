@@ -1,10 +1,8 @@
 <!--
-  Note: `class` prop is concatenated after internal classes, but Tailwind
-  JIT orders rules by utility group in the emitted CSS, not by string
-  position. To override a specific internal utility, consumers may need
-  to use `tailwind-merge` or a more specific class. For the current set
-  of consumers this has not been an issue; revisit if Task 3 migration
-  hits override needs.
+  Note: the `class` prop is concatenated after internal classes, but
+  Tailwind JIT orders rules by utility group in the emitted CSS, not by
+  string position. To override a specific internal utility, consumers
+  may need `tailwind-merge` or a more specific class.
 -->
 <script>
   export let type = 'text';

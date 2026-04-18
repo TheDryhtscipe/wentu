@@ -1,19 +1,22 @@
 <script>
-  import { onMount } from 'svelte';
   import { X } from 'lucide-svelte';
   import Button from './ui/Button.svelte';
 
   const STORAGE_KEY = 'wentu-onboarding-dismissed';
 
-  let dismissed = true;
-
-  onMount(() => {
+  // Synchronous read so first-timers don't see a flash-of-nothing and
+  // return visitors don't see a flash-of-strip. Falls back to visible if
+  // storage is unavailable (SSR, blocked cookies, etc.).
+  function initialDismissed() {
     try {
-      dismissed = localStorage.getItem(STORAGE_KEY) === '1';
+      return typeof localStorage !== 'undefined'
+        && localStorage.getItem(STORAGE_KEY) === '1';
     } catch {
-      dismissed = false;
+      return false;
     }
-  });
+  }
+
+  let dismissed = initialDismissed();
 
   function dismiss() {
     try {

@@ -107,11 +107,15 @@
     dispatch('change');
   }
 
+  function parseYmdLocal(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
   function getFirstConfiguredDate() {
     const keys = Object.keys(data.dayTimeSlots).sort();
     if (keys.length === 0) return '';
-    const d = new Date(keys[0]);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return parseYmdLocal(keys[0]).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   function copyTo(predicate) {
@@ -169,7 +173,7 @@
     </div>
 
     {#if showCopyOptions && Object.keys(data.dayTimeSlots).length > 0}
-      <div class="bg-dark-bg p-3 sm:p-4 rounded mb-3 sm:mb-4 border border-accent/30">
+      <div class="bg-dark-bg p-3 sm:p-4 rounded mb-3 sm:mb-4 border border-border-strong">
         <p class="text-text-secondary text-xs sm:text-sm mb-2 sm:mb-3">
           Copy times from {getFirstConfiguredDate()} to:
         </p>
@@ -257,7 +261,7 @@
 
       {#if showFloatingCopyOptions}
         <div
-          class="absolute left-0 mt-2 w-64 bg-surface-elevated border border-accent/30 rounded-lg p-3 shadow-xl"
+          class="absolute left-0 mt-2 w-64 bg-surface-elevated border border-border-strong rounded-lg p-3 shadow-xl"
           role="dialog"
           aria-label="Copy times options"
         >

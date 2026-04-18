@@ -24,6 +24,11 @@
     return `${y}-${m}-${day}`;
   }
 
+  function parseYmdLocal(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
   function getDaysInRange() {
     if (!data.dateRangeStart || !data.dateRangeEnd) return [];
     const days = [];
@@ -253,7 +258,7 @@
           <dd class="text-text-primary">
             <ul class="mt-1 space-y-1">
               {#each configuredDays as key (key)}
-                {@const dayDate = new Date(key)}
+                {@const dayDate = parseYmdLocal(key)}
                 <li>
                   <span class="text-text-muted">{dayDate.toLocaleDateString('en-US', dateFmt)}:</span>
                   {data.dayTimeSlots[key].join(', ')}

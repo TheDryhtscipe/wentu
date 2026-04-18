@@ -63,25 +63,26 @@
   <button
     type="button"
     class="w-full text-left rounded-lg border-2 p-4 transition-colors cursor-pointer focus:outline-offset-2 {data.enableTimeSlots ? 'border-action-primary bg-action-primary/10' : 'border-border-subtle bg-surface-card hover:border-border-strong'}"
-    aria-pressed={data.enableTimeSlots}
+    role="switch"
+    aria-checked={data.enableTimeSlots}
     on:click={toggleTimeSlots}
   >
-    <div class="flex items-start gap-3">
+    <span class="flex items-start gap-3">
       <Clock3 size={24} class="flex-shrink-0 mt-0.5 {data.enableTimeSlots ? 'text-action-primary' : 'text-text-muted'}" aria-hidden="true" />
-      <div class="flex-1">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-base font-semibold text-text-primary">Specific times?</h3>
+      <span class="flex-1 block">
+        <span class="flex items-center justify-between gap-3">
+          <span class="text-base font-semibold text-text-primary">Specific times?</span>
           <span
             class="inline-flex h-6 w-10 items-center rounded-full p-0.5 transition-colors {data.enableTimeSlots ? 'bg-action-primary' : 'bg-border-strong'}"
             aria-hidden="true"
           >
-            <span class="h-5 w-5 rounded-full bg-dark-bg transition-transform {data.enableTimeSlots ? 'translate-x-4' : 'translate-x-0'}"></span>
+            <span class="h-5 w-5 rounded-full bg-dark-bg transition-transform {data.enableTimeSlots ? 'translate-x-4' : 'translate-x-0'} block"></span>
           </span>
-        </div>
-        <p class="text-text-secondary text-sm mt-1">
+        </span>
+        <span class="text-text-secondary text-sm mt-1 block">
           Add up to 3 start times per day (e.g. 10am, 1pm, 7pm). Off by default.
-        </p>
-      </div>
-    </div>
+        </span>
+      </span>
+    </span>
   </button>
 </div>

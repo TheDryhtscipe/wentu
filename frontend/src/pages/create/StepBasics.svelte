@@ -43,7 +43,17 @@
     data.prefDeadlineTime = time;
   }
 
-  let shortcut = SHORTCUT_3_DAYS;
+  function detectShortcut(date, time) {
+    if (time !== '23:59' || !date) return SHORTCUT_CUSTOM;
+    if (date === endOfToday().date) return SHORTCUT_TODAY;
+    if (date === endOfTomorrow().date) return SHORTCUT_TOMORROW;
+    if (date === endOfIn3Days().date) return SHORTCUT_3_DAYS;
+    return SHORTCUT_CUSTOM;
+  }
+
+  // Derived from current deadline data on mount so navigating away and back
+  // doesn't snap the chip selection back to the default.
+  let shortcut = detectShortcut(data.prefDeadline, data.prefDeadlineTime);
 
   const timeOptions = (() => {
     const opts = [];
