@@ -9,7 +9,10 @@
   import Button from '../components/ui/Button.svelte';
   import Card from '../components/ui/Card.svelte';
   import { api } from '../lib/api.js';
+  import { toast } from '../lib/toast.js';
   import { addTrackedWentu, getTrackedWentu, removeTrackedWentu } from '../lib/wentuTracker.js';
+
+  const VOTED_AT_PREFIX = 'wentu-voted-at-';
 
   const dispatch = createEventDispatcher();
 
@@ -34,6 +37,8 @@
   let loadingResults = false;
   let isCreator = false;
   let hasVoted = false;
+  let votedAt = null;
+  let editingVote = false;
 
   // Preferences calendar
   let preferenceSelections = [];  // Array of { date/dateStart, dateEnd?, order }
@@ -179,6 +184,10 @@
 
       console.log('Voting status:', { hasVoted, isCreator });
 
+      if (hasVoted) {
+        votedAt = loadVotedAt(slug);
+      }
+
       // Load results if user has voted OR is creator
       if (hasVoted || isCreator) {
         console.log('Loading STV results...');
@@ -227,7 +236,27 @@
     showJoinForm = true;
   }
 
+  function loadVotedAt(s) {
+    try {
+      const raw = localStorage.getItem(`${VOTED_AT_PREFIX}${s}`);
+      if (!raw) return null;
+      const parsed = new Date(raw);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveVotedAt(s, at) {
+    try {
+      localStorage.setItem(`${VOTED_AT_PREFIX}${s}`, at.toISOString());
+    } catch (err) {
+      console.warn('Failed to persist vote timestamp:', err);
+    }
+  }
+
   async function submitPreferences() {
+    const wasAlreadyVoted = hasVoted;
     try {
       const rankings = preferences.map((p, idx) => ({
         date_option_id: p.id,
@@ -240,8 +269,7 @@
         rankings,
       });
 
-      error = '';
-      hasVoted = true;
+      handleSubmitSuccess(wasAlreadyVoted);
       await loadSTVResults();
     } catch (err) {
       if (err.message && err.message.startsWith('HTTP 401') && participantName.trim()) {
@@ -255,8 +283,7 @@
               preference_order: idx + 1,
             })),
           });
-          error = '';
-          hasVoted = true;
+          handleSubmitSuccess(wasAlreadyVoted);
           await loadSTVResults();
           return;
         } catch (retryErr) {
@@ -266,6 +293,41 @@
       }
       error = err.message;
     }
+  }
+
+  function handleSubmitSuccess(wasAlreadyVoted) {
+    error = '';
+    hasVoted = true;
+    editingVote = false;
+    votedAt = new Date();
+    saveVotedAt(slug, votedAt);
+    if (wasAlreadyVoted) {
+      toast.info('Vote updated');
+    } else {
+      toast.success('Your vote is in');
+    }
+  }
+
+  function changeMyVote() {
+    editingVote = true;
+  }
+
+  function scrollToResults() {
+    const el = document.getElementById('results');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function formatVotedAt(d) {
+    if (!d) return '';
+    return d.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
   }
 
   async function loadSTVResults() {
@@ -521,6 +583,42 @@
         <Button variant="primary" fullWidth on:click={joinWentu}>Join Wentu</Button>
       </Card>
     {:else}
+      {#if hasVoted && !editingVote}
+        <Card class="mb-4 sm:mb-6 bg-success/10 border-success/50">
+          <div class="flex items-start gap-3">
+            <CheckCircle size={24} class="text-success flex-shrink-0 mt-0.5" />
+            <div class="flex-1">
+              {#if deadlineReached}
+                <h3 class="text-lg sm:text-xl font-bold text-success">Voting closed</h3>
+                <p class="text-text-secondary text-xs sm:text-sm mt-1">
+                  You voted{votedAt ? ` on ${formatVotedAt(votedAt)}` : ''}. Voting is now closed.
+                </p>
+              {:else}
+                <h3 class="text-lg sm:text-xl font-bold text-success">You've voted</h3>
+                {#if votedAt}
+                  <p class="text-text-secondary text-xs sm:text-sm mt-1">Submitted {formatVotedAt(votedAt)}</p>
+                {/if}
+              {/if}
+              <div class="mt-3 sm:mt-4 flex flex-wrap gap-2 sm:gap-3 items-center">
+                {#if !deadlineReached}
+                  <Button variant="secondary" on:click={changeMyVote}>Change my vote</Button>
+                {/if}
+                {#if stvResults}
+                  <button
+                    type="button"
+                    on:click={scrollToResults}
+                    class="text-accent hover:underline text-sm focus:outline-offset-2 cursor-pointer"
+                  >
+                    See results
+                  </button>
+                {/if}
+              </div>
+            </div>
+          </div>
+        </Card>
+      {/if}
+
+      {#if !hasVoted || editingVote}
       <Card class="mb-4 sm:mb-6">
         <div class="flex items-center justify-between gap-2 mb-3 sm:mb-4">
           <h3 class="text-lg sm:text-xl font-bold text-accent">Your preferences</h3>
@@ -630,23 +728,26 @@
           </Button>
         {/if}
       </Card>
-
-      {#if loadingResults}
-        <Card>
-          <div class="flex items-center justify-center gap-2 text-text-secondary">
-            <Loader2 size={20} class="animate-spin" />
-            <p>Loading election results...</p>
-          </div>
-        </Card>
-      {:else if stvResults}
-        <STVResults
-          results={stvResults}
-          {wentu}
-          {isCreator}
-          {participantId}
-          {participantKey}
-        />
       {/if}
+
+      <div id="results">
+        {#if loadingResults}
+          <Card>
+            <div class="flex items-center justify-center gap-2 text-text-secondary">
+              <Loader2 size={20} class="animate-spin" />
+              <p>Loading election results...</p>
+            </div>
+          </Card>
+        {:else if stvResults}
+          <STVResults
+            results={stvResults}
+            {wentu}
+            {isCreator}
+            {participantId}
+            {participantKey}
+          />
+        {/if}
+      </div>
     {/if}
   {/if}
 </div>
