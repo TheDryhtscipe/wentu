@@ -233,7 +233,17 @@
   affordance and its options stay visually co-located.
 -->
 {#if Object.keys(data.dayTimeSlots).length > 0 && !inlineCopyVisible}
-  <div class="hidden lg:block fixed right-4 top-1/2 -translate-y-1/2 z-30">
+  <!--
+    Anchor the floating button to the right edge of the content container
+    (max-w-2xl = 42rem, centered), not the viewport. Formula: viewport
+    centre + half content width + small gap. Keeps the button visually
+    tethered to the content so it reads as a companion to the time-slots
+    card rather than a disconnected corner element.
+  -->
+  <div
+    class="hidden lg:block fixed top-1/2 -translate-y-1/2 z-30"
+    style="left: calc(50% + 21rem + 1rem);"
+  >
     <div class="relative">
       <Button
         variant="primary"
@@ -247,7 +257,7 @@
 
       {#if showFloatingCopyOptions}
         <div
-          class="absolute right-0 mt-2 w-64 bg-surface-elevated border border-accent/30 rounded-lg p-3 shadow-xl"
+          class="absolute left-0 mt-2 w-64 bg-surface-elevated border border-accent/30 rounded-lg p-3 shadow-xl"
           role="dialog"
           aria-label="Copy times options"
         >
