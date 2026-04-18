@@ -9,7 +9,7 @@
   import Button from '../components/ui/Button.svelte';
   import Card from '../components/ui/Card.svelte';
   import { api } from '../lib/api.js';
-  import { addTrackedWentu, getTrackedWentu } from '../lib/wentuTracker.js';
+  import { addTrackedWentu, getTrackedWentu, removeTrackedWentu } from '../lib/wentuTracker.js';
 
   const dispatch = createEventDispatcher();
 
@@ -208,10 +208,23 @@
 
       showJoinForm = false;
     } catch (err) {
-      if (!silent) {
+      if (silent) {
+        console.warn('Silent auto-rejoin failed:', err);
+      } else {
         error = err.message;
       }
     }
+  }
+
+  function notYou() {
+    removeTrackedWentu(slug);
+    participantId = '';
+    participantKey = '';
+    participantName = '';
+    hasVoted = false;
+    isCreator = false;
+    stvResults = null;
+    showJoinForm = true;
   }
 
   async function submitPreferences() {
@@ -509,7 +522,21 @@
       </Card>
     {:else}
       <Card class="mb-4 sm:mb-6">
-        <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Your preferences</h3>
+        <div class="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+          <h3 class="text-lg sm:text-xl font-bold text-accent">Your preferences</h3>
+          {#if participantName}
+            <p class="text-text-secondary text-xs sm:text-sm">
+              Voting as <span class="font-medium text-text-primary">{participantName}</span>
+              <button
+                type="button"
+                on:click={notYou}
+                class="ml-2 text-accent hover:underline focus:outline-offset-2 cursor-pointer"
+              >
+                Not you?
+              </button>
+            </p>
+          {/if}
+        </div>
         {#if deadlineReached}
           <div class="flex items-center gap-2 text-error text-xs sm:text-sm mb-3 sm:mb-4">
             <Lock size={16} class="flex-shrink-0" />
