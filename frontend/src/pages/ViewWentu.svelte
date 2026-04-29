@@ -508,7 +508,7 @@
       </div>
     </Card>
   {:else if error && !wentu}
-    <Card class="bg-error/10 border-error/50">
+    <Card surface="error">
       <div class="flex items-center gap-2 text-error text-sm">
         <AlertCircle size={20} class="flex-shrink-0" />
         <p>{error}</p>
@@ -584,7 +584,7 @@
       </Card>
     {:else}
       {#if hasVoted && !editingVote}
-        <Card class="mb-4 sm:mb-6 bg-success/10 border-success/50">
+        <Card surface="success" class="mb-4 sm:mb-6">
           <div class="flex items-start gap-3">
             <CheckCircle size={24} class="text-success flex-shrink-0 mt-0.5" />
             <div class="flex-1">

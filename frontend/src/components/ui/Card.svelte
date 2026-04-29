@@ -8,7 +8,7 @@
   export let elevated = false;
   export let padded = true;
   export let element = undefined;
-  /** @type {'default' | 'success' | 'accent'} */
+  /** @type {'default' | 'success' | 'accent' | 'error'} */
   export let surface = 'default';
   let className = '';
   export { className as class };
@@ -16,12 +16,14 @@
   $: backgroundClass = (() => {
     if (surface === 'success') return 'bg-success/10';
     if (surface === 'accent') return 'bg-accent/10';
+    if (surface === 'error') return 'bg-error/10';
     return elevated ? 'bg-surface-elevated' : 'bg-surface-card';
   })();
 
   $: borderClass = (() => {
     if (surface === 'success') return 'border-success/50';
     if (surface === 'accent') return 'border-accent/30';
+    if (surface === 'error') return 'border-error/50';
     return 'border-border-subtle';
   })();
 

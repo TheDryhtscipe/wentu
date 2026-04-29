@@ -272,7 +272,7 @@
   {/if}
 
   {#if error}
-    <Card class="bg-error/10 border-error/50">
+    <Card surface="error">
       <div class="flex items-center gap-2 text-error text-sm">
         <AlertCircle size={20} aria-hidden="true" class="flex-shrink-0" />
         <p>{error}</p>
