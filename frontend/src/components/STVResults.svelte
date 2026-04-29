@@ -21,10 +21,14 @@
   function toggleExplanation() {
     showExplanation = !showExplanation;
     if (typeof localStorage === 'undefined') return;
-    if (showExplanation) {
-      localStorage.setItem(SHOW_EXPLANATION_KEY, '1');
-    } else {
-      localStorage.removeItem(SHOW_EXPLANATION_KEY);
+    try {
+      if (showExplanation) {
+        localStorage.setItem(SHOW_EXPLANATION_KEY, '1');
+      } else {
+        localStorage.removeItem(SHOW_EXPLANATION_KEY);
+      }
+    } catch {
+      // localStorage write failure (e.g., private browsing quota) — UI state still updates
     }
   }
 
@@ -121,7 +125,7 @@
       <div>
         <button
           type="button"
-          class="flex items-center gap-2 text-text-secondary hover:text-accent transition-colors text-sm w-full text-left"
+          class="flex items-center gap-2 text-text-secondary hover:text-accent transition-colors text-sm w-full text-left focus:outline-offset-2"
           aria-expanded={showExplanation}
           aria-controls="stv-explanation-body"
           on:click={toggleExplanation}
