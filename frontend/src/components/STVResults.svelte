@@ -64,7 +64,7 @@
 
     <!-- Hero Card -->
     {#if results.winner}
-      <Card class="bg-success/10 border-success/50">
+      <Card surface="success">
         <div class="flex items-start gap-3 sm:gap-4">
           <Trophy size={32} class="text-success flex-shrink-0 mt-1" />
           <div class="flex-1 min-w-0">
@@ -90,7 +90,7 @@
         </div>
       </Card>
     {:else}
-      <Card class="bg-accent/10 border-accent/30">
+      <Card surface="accent">
         <div class="flex items-start gap-3 sm:gap-4">
           <Info size={28} class="text-accent flex-shrink-0 mt-1" />
           <div class="flex-1 min-w-0">

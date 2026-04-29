@@ -1,24 +1,37 @@
 <!--
-  Note: the `class` prop is concatenated after internal classes, but
-  Tailwind JIT orders rules by utility group in the emitted CSS, not by
-  string position. To override a specific internal utility, consumers
-  may need `tailwind-merge` or a more specific class.
+  The `surface` prop selects the background wash + matching border in one place,
+  so consumers don't fight CSS declaration order against Tailwind utilities.
+  Pass a custom `class` only for layout (margin/spacing); colour washes belong
+  in `surface`.
 -->
 <script>
   export let elevated = false;
   export let padded = true;
   export let element = undefined;
+  /** @type {'default' | 'success' | 'accent'} */
+  export let surface = 'default';
   let className = '';
   export { className as class };
 
-  $: surfaceClass = elevated ? 'bg-surface-elevated' : 'bg-surface-card';
+  $: backgroundClass = (() => {
+    if (surface === 'success') return 'bg-success/10';
+    if (surface === 'accent') return 'bg-accent/10';
+    return elevated ? 'bg-surface-elevated' : 'bg-surface-card';
+  })();
+
+  $: borderClass = (() => {
+    if (surface === 'success') return 'border-success/50';
+    if (surface === 'accent') return 'border-accent/30';
+    return 'border-border-subtle';
+  })();
+
   $: paddingClass = padded ? 'p-3 sm:p-4' : '';
 </script>
 
 <div
   {...$$restProps}
   bind:this={element}
-  class="rounded-lg border border-border-subtle {surfaceClass} {paddingClass} {className}"
+  class="rounded-lg border {borderClass} {backgroundClass} {paddingClass} {className}"
 >
   <slot />
 </div>
