@@ -43,6 +43,10 @@
   // different day widens the range; a third click starts a fresh 1-day pick.
   let pendingExtend = false;
 
+  // The committed range's start key, preserved across handleMouseDown's
+  // anchor-reset so click-to-extend can widen from the original commit.
+  let committedStartKey = null;
+
   // Track the keys we last dispatched so we can distinguish the parent's
   // round-trip echo of our own emit from a genuine external change.
   let lastDispatchedStartKey = null;
@@ -119,13 +123,16 @@
       endDate = nextEnd;
       lastSyncedStartKey = nextStart;
       lastSyncedEndKey = nextEnd;
-      // Only reset pendingExtend on a *genuine* external change. After
-      // applyClickSelection dispatches a 1-day range, the parent will mirror
-      // it back through props — that round-trip must not clobber the flag,
-      // otherwise click-2-to-extend never works.
+      // Only reset pendingExtend on a *genuine* external change. After a
+      // commit dispatches a range, the parent will mirror it back through
+      // props — that round-trip must not clobber the flag, otherwise
+      // click-2-to-extend never works.
       const isSelfEcho =
         nextStart === lastDispatchedStartKey && nextEnd === lastDispatchedEndKey;
       if (!isSelfEcho) {
+        // External range arrived (e.g. navigating back to this step). Treat
+        // it as a finalized range — the next click starts a fresh selection.
+        committedStartKey = nextStart;
         pendingExtend = false;
       }
     }
@@ -267,15 +274,18 @@
       spanStartKey = key;
       startedWithMouseDown = true;
     } else {
-      if (!startDate || endDate) {
-        startDate = key;
-        endDate = null;
-        startedWithMouseDown = true;
-      } else {
-        startedWithMouseDown = false;
-      }
+      // Range mode: always treat the press as the start of a potential drag.
+      // If a drag develops, handleMouseEnter will track endDate from this
+      // anchor. If no drag (just a click), handleMouseUp calls commitClick
+      // which uses committedStartKey (preserved across this overwrite) so
+      // click-to-extend still works.
+      // startedWithMouseDown is always true here so handleClick suppresses
+      // and the commit fires exactly once via handleMouseUp.
+      startDate = key;
+      endDate = null;
+      startedWithMouseDown = true;
     }
-    
+
     hoveredDate = key;
   }
 
@@ -330,19 +340,25 @@
           dispatch('preferenceschange', { selectedDates });
         }
       } else {
-        // Emit the event with properly ordered dates
+        // Drag complete in range mode — dispatch the dragged range.
         const start = parseKey(startDate);
         const end = parseKey(endDate);
         const minKey = start < end ? startDate : endDate;
         const maxKey = start < end ? endDate : startDate;
+        committedStartKey = minKey;
+        pendingExtend = false;
         lastDispatchedStartKey = minKey;
         lastDispatchedEndKey = maxKey;
         dispatch('daterange', {
           start: start < end ? start : end,
           end: start < end ? end : start
         });
-        pendingExtend = false;
       }
+    } else if (mode !== 'preferences') {
+      // Mouse press without drag in range mode is a click. Run the unified
+      // click-commit logic now (handleClick is suppressed by
+      // startedWithMouseDown so it can't run this branch on click 1).
+      commitClick(key);
     }
 
     isMouseDown = false;
@@ -351,15 +367,16 @@
     dragStartDay = null;
   }
 
-  function applyClickSelection(key) {
-    // Click 1 (or fresh restart): commit a single-day range immediately so
-    // single-day picks don't require a redundant second click. The
-    // pendingExtend flag marks that the next click on a *different* day
-    // should widen rather than restart.
-    if (!startDate || !pendingExtend) {
+  // Single source of truth for click-style commits in range mode (no drag).
+  // Called from handleMouseUp (mouse) and applyClickSelection (touch tap).
+  function commitClick(key) {
+    // Fresh commit: no prior single-day commit to extend from. Land a
+    // single-day range so Next is enabled immediately.
+    if (!pendingExtend || !committedStartKey) {
       startDate = key;
       endDate = key;
       hoveredDate = key;
+      committedStartKey = key;
       pendingExtend = true;
       const d = parseKey(key);
       lastDispatchedStartKey = key;
@@ -368,24 +385,33 @@
       return;
     }
 
-    // Click 2 on the same day — no-op, range is already valid.
-    if (key === startDate) {
+    // Click on the same committed day — no-op, range is still valid as 1-day.
+    if (key === committedStartKey) {
+      startDate = committedStartKey;
+      endDate = committedStartKey;
       return;
     }
 
-    // Click 2 on a different day — widen the existing single-day commit.
-    endDate = key;
+    // Click on a different day — widen the single-day commit into a range.
+    const start = parseKey(committedStartKey);
+    const end = parseKey(key);
+    const minKey = start < end ? committedStartKey : key;
+    const maxKey = start < end ? key : committedStartKey;
+    startDate = minKey;
+    endDate = maxKey;
+    committedStartKey = minKey;
     pendingExtend = false;
-    const start = parseKey(startDate);
-    const end = parseKey(endDate);
-    const minKey = start < end ? startDate : endDate;
-    const maxKey = start < end ? endDate : startDate;
     lastDispatchedStartKey = minKey;
     lastDispatchedEndKey = maxKey;
     dispatch('daterange', {
       start: start < end ? start : end,
       end: start < end ? end : start
     });
+  }
+
+  // Touch tap entry point. Mouse uses handleMouseUp directly.
+  function applyClickSelection(key) {
+    commitClick(key);
   }
 
   function handleClick(day) {
@@ -450,6 +476,7 @@
     interactionType = null;
     touchIdentifier = null;
     pendingExtend = false;
+    committedStartKey = null;
     lastDispatchedStartKey = null;
     lastDispatchedEndKey = null;
     if (mode === 'preferences') {
