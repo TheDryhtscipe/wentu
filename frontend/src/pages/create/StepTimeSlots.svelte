@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { createEventDispatcher, onMount, tick } from 'svelte';
   import { Copy } from 'lucide-svelte';
   import TimeSlotConfigurator from '../../components/TimeSlotConfigurator.svelte';
   import TimezonePicker from '../../components/TimezonePicker.svelte';
@@ -12,6 +12,48 @@
 
   let showCopyOptions = false;
   let showFloatingCopyOptions = false;
+
+  // Floating popover focus management. Keep refs to the trigger button and
+  // the first action so we can auto-focus the first action on open and
+  // restore focus to the trigger on close.
+  let floatingTriggerEl = null;
+  let floatingFirstActionEl = null;
+  let floatingPopoverEl = null;
+
+  function openFloatingPopover() {
+    showFloatingCopyOptions = true;
+  }
+
+  async function closeFloatingPopover({ restoreFocus = true } = {}) {
+    if (!showFloatingCopyOptions) return;
+    showFloatingCopyOptions = false;
+    if (restoreFocus) {
+      // Wait for Svelte to flush the popover unmount before focusing,
+      // otherwise focus can land on body when the trigger is briefly
+      // detached during a re-render triggered by an action handler.
+      await tick();
+      floatingTriggerEl?.focus();
+    }
+  }
+
+  function handlePopoverKeydown(event) {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      closeFloatingPopover();
+    }
+  }
+
+  function handleWindowClick(event) {
+    if (!showFloatingCopyOptions) return;
+    if (floatingPopoverEl?.contains(event.target)) return;
+    if (floatingTriggerEl?.contains(event.target)) return;
+    closeFloatingPopover({ restoreFocus: false });
+  }
+
+  // Auto-focus first action on open.
+  $: if (showFloatingCopyOptions && floatingFirstActionEl) {
+    queueMicrotask(() => floatingFirstActionEl?.focus());
+  }
 
   // Track whether the inline "Copy times" button is in view. When it scrolls
   // out of view (and the user has configured at least one day), a floating
@@ -154,6 +196,8 @@
   $: days = getDaysInRange();
 </script>
 
+<svelte:window on:click={handleWindowClick} />
+
 <div class="space-y-4">
   <Card>
     <TimezonePicker bind:selectedTimezone={data.timezone} on:change={handleTimezoneChange} />
@@ -250,10 +294,13 @@
   >
     <div class="relative">
       <Button
+        bind:element={floatingTriggerEl}
         variant="primary"
         class="shadow-lg"
         aria-label="Copy times to other days"
-        on:click={() => (showFloatingCopyOptions = !showFloatingCopyOptions)}
+        aria-haspopup="menu"
+        aria-expanded={showFloatingCopyOptions}
+        on:click={() => (showFloatingCopyOptions ? closeFloatingPopover({ restoreFocus: false }) : openFloatingPopover())}
       >
         <Copy size={16} class="inline mr-1" />
         Copy times
@@ -261,32 +308,39 @@
 
       {#if showFloatingCopyOptions}
         <div
+          bind:this={floatingPopoverEl}
           class="absolute left-0 mt-2 w-64 bg-surface-elevated border border-border-strong rounded-lg p-3 shadow-xl"
-          role="dialog"
+          role="menu"
+          tabindex="-1"
           aria-label="Copy times options"
+          on:keydown={handlePopoverKeydown}
         >
           <p class="text-text-secondary text-xs mb-2">
             Copy times from {getFirstConfiguredDate()} to:
           </p>
           <div class="flex flex-col gap-2">
             <Button
+              bind:element={floatingFirstActionEl}
               variant="secondary"
               class="text-sm w-full justify-start"
-              on:click={() => { copyAll(); showFloatingCopyOptions = false; }}
+              role="menuitem"
+              on:click={() => { copyAll(); closeFloatingPopover(); }}
             >
               All days
             </Button>
             <Button
               variant="secondary"
               class="text-sm w-full justify-start"
-              on:click={() => { copyWeekdays(); showFloatingCopyOptions = false; }}
+              role="menuitem"
+              on:click={() => { copyWeekdays(); closeFloatingPopover(); }}
             >
               Weekdays
             </Button>
             <Button
               variant="secondary"
               class="text-sm w-full justify-start"
-              on:click={() => { copyWeekends(); showFloatingCopyOptions = false; }}
+              role="menuitem"
+              on:click={() => { copyWeekends(); closeFloatingPopover(); }}
             >
               Weekends
             </Button>

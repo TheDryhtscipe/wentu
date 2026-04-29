@@ -13,6 +13,7 @@
   export let disabled = false;
   export let loading = false;
   export let fullWidth = false;
+  export let element = undefined;
   let className = '';
   export { className as class };
 
@@ -39,6 +40,7 @@
 
 <button
   {...$$restProps}
+  bind:this={element}
   {type}
   disabled={isDisabled}
   aria-busy={loading ? 'true' : undefined}
