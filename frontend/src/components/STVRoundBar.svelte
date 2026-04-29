@@ -45,10 +45,12 @@
     <!-- Quota label aligned to the chart's bar column -->
     <div class="grid grid-cols-[minmax(0,7rem)_1fr_auto] items-center gap-2 mb-1">
       <span></span>
-      <div class="relative">
+      <div class="relative h-4 sm:h-5">
         <span
           class="absolute -top-0.5 text-[10px] sm:text-xs text-accent font-medium whitespace-nowrap"
-          style="left: {quotaPercent}%; transform: translateX(-50%);"
+          style={quotaPercent >= 90
+            ? `right: 0; transform: translateX(0);`
+            : `left: ${quotaPercent}%; transform: translateX(-50%);`}
         >
           Quota: {effectiveQuota}
         </span>

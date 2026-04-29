@@ -85,7 +85,7 @@
     {#if results.winner}
       <Card surface="success">
         <div class="flex items-start gap-3 sm:gap-4">
-          <Trophy size={32} class="text-success flex-shrink-0 mt-1" />
+          <Trophy size={32} class="text-success flex-shrink-0 mt-1" aria-hidden="true" />
           <div class="flex-1 min-w-0">
             <p class="text-text-secondary text-xs sm:text-sm">Winning date</p>
             <p class="text-success text-2xl sm:text-3xl font-bold leading-tight break-words">
@@ -111,7 +111,7 @@
     {:else}
       <Card surface="accent">
         <div class="flex items-start gap-3 sm:gap-4">
-          <Info size={28} class="text-accent flex-shrink-0 mt-1" />
+          <Info size={28} class="text-accent flex-shrink-0 mt-1" aria-hidden="true" />
           <div class="flex-1 min-w-0">
             <p class="text-text-secondary text-xs sm:text-sm">Results pending</p>
             <p class="text-accent text-xl sm:text-2xl font-bold leading-tight">No votes yet</p>
