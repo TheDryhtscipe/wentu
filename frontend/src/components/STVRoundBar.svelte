@@ -84,7 +84,7 @@
             ? 'bg-error/70'
             : 'bg-accent'}
         <div
-          class="grid grid-cols-[minmax(0,7rem)_1fr_auto] items-center gap-2 relative"
+          class="grid grid-cols-[minmax(0,7rem)_1fr_auto] items-center gap-2"
           class:opacity-50={isEliminated}
         >
           <span class="text-xs sm:text-sm text-text-secondary truncate">
