@@ -15,6 +15,19 @@
   let loadingVoters = false;
   let showVoterList = false;
 
+  const SHOW_EXPLANATION_KEY = 'wentu-show-stv-explanation';
+  let showExplanation = false;
+
+  function toggleExplanation() {
+    showExplanation = !showExplanation;
+    if (typeof localStorage === 'undefined') return;
+    if (showExplanation) {
+      localStorage.setItem(SHOW_EXPLANATION_KEY, '1');
+    } else {
+      localStorage.removeItem(SHOW_EXPLANATION_KEY);
+    }
+  }
+
   function findDateLabel(id) {
     return wentu?.date_options?.find((d) => d.id === id)?.label || 'Unknown date';
   }
@@ -50,6 +63,8 @@
   }
 
   onMount(() => {
+    showExplanation = typeof localStorage !== 'undefined'
+      && localStorage.getItem(SHOW_EXPLANATION_KEY) === '1';
     if (isCreator) {
       loadVoters();
     }
@@ -101,7 +116,46 @@
       </Card>
     {/if}
 
-    <!-- Explanation disclosure: Task F fills this in -->
+    <!-- Explanation disclosure -->
+    {#if results.winner || (results.rounds && results.rounds.length > 0)}
+      <div>
+        <button
+          type="button"
+          class="flex items-center gap-2 text-text-secondary hover:text-accent transition-colors text-sm w-full text-left"
+          aria-expanded={showExplanation}
+          aria-controls="stv-explanation-body"
+          on:click={toggleExplanation}
+        >
+          {#if showExplanation}
+            <ChevronDown size={16} class="flex-shrink-0" aria-hidden="true" />
+          {:else}
+            <ChevronRight size={16} class="flex-shrink-0" aria-hidden="true" />
+          {/if}
+          <span class="font-medium">How this was calculated</span>
+        </button>
+
+        {#if showExplanation}
+          <div
+            id="stv-explanation-body"
+            class="bg-dark-bg rounded p-3 sm:p-4 mt-2 text-text-secondary text-xs sm:text-sm space-y-2"
+          >
+            <p>
+              <strong>How results are calculated:</strong> This election uses Single Transferable Vote (STV)
+              to find the most preferred date. Each round, votes are counted for each participant's
+              highest-ranked available option.
+            </p>
+            <p>
+              To win, a date must reach the <strong>voting quota of {results.quota} vote{results.quota !== 1 ? 's' : ''}</strong>,
+              which represents a simple majority (more than half of all voters).
+            </p>
+            <p>
+              If no date reaches the quota, the date with the fewest votes is eliminated, and those
+              votes transfer to the next preference on each ballot. This continues until a winner emerges.
+            </p>
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <!-- Results Card with round-by-round bars: Task G fills this in -->
 
