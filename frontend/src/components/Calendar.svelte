@@ -43,6 +43,11 @@
   // different day widens the range; a third click starts a fresh 1-day pick.
   let pendingExtend = false;
 
+  // Track the keys we last dispatched so we can distinguish the parent's
+  // round-trip echo of our own emit from a genuine external change.
+  let lastDispatchedStartKey = null;
+  let lastDispatchedEndKey = null;
+
   // Reactive maps for template reactivity (Svelte can't track dependencies inside function calls)
   $: orderByDateKey = new Map(
     selectedDates.map(d => [d.date || d.dateStart, d.order])
@@ -114,9 +119,15 @@
       endDate = nextEnd;
       lastSyncedStartKey = nextStart;
       lastSyncedEndKey = nextEnd;
-      // External range arrived (e.g. navigating back). Treat it as committed —
-      // the next click should start a new selection, not extend this one.
-      pendingExtend = false;
+      // Only reset pendingExtend on a *genuine* external change. After
+      // applyClickSelection dispatches a 1-day range, the parent will mirror
+      // it back through props — that round-trip must not clobber the flag,
+      // otherwise click-2-to-extend never works.
+      const isSelfEcho =
+        nextStart === lastDispatchedStartKey && nextEnd === lastDispatchedEndKey;
+      if (!isSelfEcho) {
+        pendingExtend = false;
+      }
     }
   }
 
@@ -322,6 +333,10 @@
         // Emit the event with properly ordered dates
         const start = parseKey(startDate);
         const end = parseKey(endDate);
+        const minKey = start < end ? startDate : endDate;
+        const maxKey = start < end ? endDate : startDate;
+        lastDispatchedStartKey = minKey;
+        lastDispatchedEndKey = maxKey;
         dispatch('daterange', {
           start: start < end ? start : end,
           end: start < end ? end : start
@@ -347,6 +362,8 @@
       hoveredDate = key;
       pendingExtend = true;
       const d = parseKey(key);
+      lastDispatchedStartKey = key;
+      lastDispatchedEndKey = key;
       dispatch('daterange', { start: d, end: d });
       return;
     }
@@ -361,6 +378,10 @@
     pendingExtend = false;
     const start = parseKey(startDate);
     const end = parseKey(endDate);
+    const minKey = start < end ? startDate : endDate;
+    const maxKey = start < end ? endDate : startDate;
+    lastDispatchedStartKey = minKey;
+    lastDispatchedEndKey = maxKey;
     dispatch('daterange', {
       start: start < end ? start : end,
       end: start < end ? end : start
@@ -429,6 +450,8 @@
     interactionType = null;
     touchIdentifier = null;
     pendingExtend = false;
+    lastDispatchedStartKey = null;
+    lastDispatchedEndKey = null;
     if (mode === 'preferences') {
       selectedDates = [];
       spanStartKey = null;
@@ -553,6 +576,10 @@
         // Drag complete - emit the range
         const start = parseKey(startDate);
         const end = parseKey(endDate);
+        const minKey = start < end ? startDate : endDate;
+        const maxKey = start < end ? endDate : startDate;
+        lastDispatchedStartKey = minKey;
+        lastDispatchedEndKey = maxKey;
         dispatch('daterange', {
           start: start < end ? start : end,
           end: start < end ? end : start
