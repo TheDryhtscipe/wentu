@@ -86,11 +86,6 @@
       data.prefDeadline = date;
       data.prefDeadlineTime = time;
     }
-    notifyChange();
-  }
-
-  function notifyChange() {
-    dispatch('change');
   }
 
   $: deadlineIso = (() => {
@@ -127,7 +122,6 @@
       class="w-full"
       placeholder="Team offsite"
       bind:value={data.title}
-      on:input={notifyChange}
       required
     />
   </div>
@@ -143,7 +137,6 @@
       placeholder="Optional details about the meeting"
       rows={3}
       bind:value={data.description}
-      on:input={notifyChange}
     />
   </div>
 
@@ -157,7 +150,6 @@
       class="w-full"
       placeholder="Alice"
       bind:value={data.creatorName}
-      on:input={notifyChange}
       required
     />
   </div>
@@ -191,13 +183,11 @@
           class="flex-1"
           type="date"
           bind:value={data.prefDeadline}
-          on:change={notifyChange}
           aria-label="Voting-closes date"
         />
         <Select
           class="w-full sm:w-auto"
           bind:value={data.prefDeadlineTime}
-          on:change={notifyChange}
           aria-label="Voting-closes time"
         >
           {#each timeOptions as opt (opt.value)}

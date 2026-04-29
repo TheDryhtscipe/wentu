@@ -128,13 +128,11 @@
       delete next[key];
       data.dayTimeSlots = next;
     }
-    dispatch('change');
   }
 
   function restoreDay(day) {
     const key = formatDate(day);
     data.excludedDays = data.excludedDays.filter((d) => d !== key);
-    dispatch('change');
   }
 
   function handleTimeSlotChange(day, slots) {
@@ -146,7 +144,6 @@
       delete next[key];
     }
     data.dayTimeSlots = next;
-    dispatch('change');
   }
 
   function parseYmdLocal(key) {
@@ -172,7 +169,6 @@
     });
     data.dayTimeSlots = next;
     showCopyOptions = false;
-    dispatch('change');
   }
 
   const copyAll = () => copyTo(() => true);
@@ -190,7 +186,6 @@
 
   function handleTimezoneChange(e) {
     data.timezone = e.detail;
-    dispatch('change');
   }
 
   $: days = getDaysInRange();

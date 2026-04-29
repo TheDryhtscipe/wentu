@@ -12,18 +12,15 @@
     // mirror that into formData so the summary card disappears in step.
     data.dateRangeStart = event.detail.start;
     data.dateRangeEnd = event.detail.end;
-    dispatch('change');
   }
 
   function clearRange() {
     data.dateRangeStart = null;
     data.dateRangeEnd = null;
-    dispatch('change');
   }
 
   function toggleTimeSlots() {
     data.enableTimeSlots = !data.enableTimeSlots;
-    dispatch('change');
   }
 
   $: hasRange = !!(data.dateRangeStart && data.dateRangeEnd);
