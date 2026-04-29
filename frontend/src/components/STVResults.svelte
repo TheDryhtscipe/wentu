@@ -182,7 +182,42 @@
       </Card>
     {/if}
 
-    <!-- Creator-only voter Card: Task H fills this in -->
+    <!-- Creator-only voter Card -->
+    {#if isCreator}
+      <Card>
+        <button
+          type="button"
+          class="flex items-center gap-2 text-text-secondary hover:text-accent transition-colors text-sm w-full text-left focus:outline-offset-2"
+          aria-expanded={showVoterList}
+          aria-controls="creator-voter-list-body"
+          on:click={() => showVoterList = !showVoterList}
+        >
+          {#if showVoterList}
+            <ChevronDown size={16} class="flex-shrink-0" aria-hidden="true" />
+          {:else}
+            <ChevronRight size={16} class="flex-shrink-0" aria-hidden="true" />
+          {/if}
+          <Users size={16} class="flex-shrink-0" aria-hidden="true" />
+          <span class="font-medium">Who has voted ({voters.length})</span>
+        </button>
+
+        {#if showVoterList}
+          <div id="creator-voter-list-body" class="mt-3 pl-6">
+            {#if loadingVoters}
+              <p class="text-text-secondary text-xs italic">Loading...</p>
+            {:else if voters.length === 0}
+              <p class="text-text-secondary text-xs italic">No one has voted yet</p>
+            {:else}
+              <ul class="space-y-1">
+                {#each voters as voter}
+                  <li class="text-text-secondary text-xs sm:text-sm">{voter}</li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {/if}
+      </Card>
+    {/if}
 
   </div>
 {/if}
