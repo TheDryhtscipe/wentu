@@ -161,7 +161,26 @@
       </div>
     {/if}
 
-    <!-- Results Card with round-by-round bars: Task G fills this in -->
+    <!-- Results Card -->
+    {#if results.rounds && results.rounds.length > 0}
+      <Card>
+        <h4 class="text-base sm:text-lg font-semibold text-accent mb-3 sm:mb-4">
+          Round-by-round
+        </h4>
+        <div class="space-y-4 sm:space-y-5">
+          {#each results.rounds as round (round.round_number)}
+            <STVRoundBar
+              {round}
+              totalVoters={results.total_voters ?? 0}
+              fallbackQuota={results.quota}
+              winnerId={results.winner}
+              isFinalRound={round.round_number === results.rounds.length}
+              {findDateLabel}
+            />
+          {/each}
+        </div>
+      </Card>
+    {/if}
 
     <!-- Creator-only voter Card: Task H fills this in -->
 
