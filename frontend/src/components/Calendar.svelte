@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import { ChevronLeft, ChevronRight } from 'lucide-svelte';
   import Button from './ui/Button.svelte';
 
@@ -10,8 +10,12 @@
   export let mode = 'range';  // 'range' or 'preferences'
   export let selectedDates = [];  // For preferences mode: array of { date, order }
   export let availableDateOptions = [];  // For preferences mode: array of { start, end, label, id }
-
-
+  // Range-mode controlled-ish inputs. Pass Date|null; Calendar mirrors them
+  // into its internal YYYY-MM-DD keys so navigating away and back doesn't
+  // lose the highlighted range. Footer Clear dispatches `daterange` with
+  // null endpoints so the parent can clear in lockstep.
+  export let rangeStart = null;
+  export let rangeEnd = null;
 
   let startDate = null;
   let endDate = null;
@@ -81,6 +85,42 @@
     const [y, m, d] = key.split('-').map(Number);
     return new Date(y, m - 1, d);
   }
+
+  function dateToKey(date) {
+    if (!date) return null;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const da = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${da}`;
+  }
+
+  // Sync external rangeStart/rangeEnd → internal keys only when the *props*
+  // actually change. A blanket reactive sync would clobber an in-progress
+  // click-then-click selection (after click 1, internal startDate is set but
+  // the parent hasn't received the dispatch yet, so props are still stale).
+  // lastSynced* starts null so the first reactive pass seeds internal state
+  // from non-null props on mount.
+  let lastSyncedStartKey = null;
+  let lastSyncedEndKey = null;
+  $: if (mode === 'range') {
+    const nextStart = dateToKey(rangeStart);
+    const nextEnd = dateToKey(rangeEnd);
+    if (nextStart !== lastSyncedStartKey || nextEnd !== lastSyncedEndKey) {
+      startDate = nextStart;
+      endDate = nextEnd;
+      lastSyncedStartKey = nextStart;
+      lastSyncedEndKey = nextEnd;
+    }
+  }
+
+  // On remount with a pre-populated range, jump the visible month to the
+  // range start so the user sees their highlight without scrolling.
+  onMount(() => {
+    if (mode === 'range' && rangeStart instanceof Date) {
+      year = rangeStart.getFullYear();
+      month = rangeStart.getMonth();
+    }
+  });
 
   function dateFromKey(key) {
     return parseKey(key);
@@ -378,6 +418,10 @@
       selectedDates = [];
       spanStartKey = null;
       dispatch('preferenceschange', { selectedDates: [] });
+    } else {
+      // Mirror the clear up so parents using rangeStart/rangeEnd props can
+      // reset their state in lockstep with the footer Clear button.
+      dispatch('daterange', { start: null, end: null });
     }
   }
 

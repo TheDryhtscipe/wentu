@@ -8,6 +8,8 @@
   const dispatch = createEventDispatcher();
 
   function handleDateRange(event) {
+    // Calendar emits null endpoints when its footer Clear button is used —
+    // mirror that into formData so the summary card disappears in step.
     data.dateRangeStart = event.detail.start;
     data.dateRangeEnd = event.detail.end;
     dispatch('change');
@@ -37,7 +39,12 @@
     <p class="text-text-secondary text-sm mb-3">
       Pick the window participants can rank. Each day in the range becomes a ranking option.
     </p>
-    <Calendar mode="range" on:daterange={handleDateRange} />
+    <Calendar
+      mode="range"
+      rangeStart={data.dateRangeStart}
+      rangeEnd={data.dateRangeEnd}
+      on:daterange={handleDateRange}
+    />
   </div>
 
   {#if hasRange}
