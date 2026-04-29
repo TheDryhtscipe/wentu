@@ -1,8 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import Home from './pages/Home.svelte';
-  import CreateWentu from './pages/CreateWentu.svelte';
+  import CreateShell from './pages/create/CreateShell.svelte';
   import ViewWentu from './pages/ViewWentu.svelte';
+  import ToastHost from './components/ui/ToastHost.svelte';
   import './app.css';
 
   let currentPage = 'home';
@@ -91,7 +92,7 @@
     {#if currentPage === 'home'}
       <Home on:navigate={(e) => navigate(e.detail.page, e.detail.params)} />
     {:else if currentPage === 'create'}
-      <CreateWentu on:navigate={(e) => navigate(e.detail.page, e.detail.params)} />
+      <CreateShell on:navigate={(e) => navigate(e.detail.page, e.detail.params)} />
     {:else if currentPage === 'view'}
       <ViewWentu
         slug={params.slug}
@@ -105,9 +106,11 @@
   </main>
 
   <footer class="bg-content-bg border-t border-accent/30 py-3 px-4 sm:py-4 sm:px-6 text-center text-text-secondary text-xs sm:text-sm">
-    <p>No accounts, no persistence. Everything expires.</p>
+    <p>No accounts. All data deleted 7 days after voting closes.</p>
   </footer>
 </div>
+
+<ToastHost />
 
 <style global>
   :global(body) {

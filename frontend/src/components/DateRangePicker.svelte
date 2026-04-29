@@ -1,5 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
+  import Button from './ui/Button.svelte';
+  import Input from './ui/Input.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -37,23 +39,21 @@
 <div>
   <div class="grid gap-4 md:grid-cols-2 mb-4">
     <div>
-      <label class="block text-text-primary text-sm font-medium mb-2">Start date</label>
-      <input
-        class="input w-full"
+      <Input
+        label="Start date"
         type="date"
+        class="w-full"
         bind:value={startDate}
         on:keydown={handleKeydown}
-        aria-label="Start date"
       />
     </div>
     <div>
-      <label class="block text-text-primary text-sm font-medium mb-2">End date</label>
-      <input
-        class="input w-full"
+      <Input
+        label="End date"
         type="date"
+        class="w-full"
         bind:value={endDate}
         on:keydown={handleKeydown}
-        aria-label="End date"
       />
     </div>
   </div>
@@ -62,7 +62,7 @@
     <p class="text-error text-sm mb-4">{error}</p>
   {/if}
 
-  <button class="btn-secondary w-full" on:click={addDateRange}>
+  <Button variant="secondary" fullWidth on:click={addDateRange}>
     Add date range
-  </button>
+  </Button>
 </div>

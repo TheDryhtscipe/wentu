@@ -2,6 +2,8 @@
   import { createEventDispatcher } from 'svelte';
   import { Lightbulb } from 'lucide-svelte';
   import TrackedWentusList from '../components/TrackedWentusList.svelte';
+  import Button from '../components/ui/Button.svelte';
+  import Card from '../components/ui/Card.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -35,20 +37,21 @@
 
   <div class="grid gap-6 sm:gap-8 md:grid-cols-2">
     <!-- Create Section -->
-    <div class="card flex flex-col">
+    <Card class="flex flex-col">
       <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Create new</h3>
       <p class="text-text-secondary text-sm sm:text-base mb-4 sm:mb-6">Set a title, pick date options, and share the code with others.</p>
-      <button class="btn-primary w-full mt-auto" on:click={goCreate}>
+      <Button variant="primary" fullWidth class="mt-auto" on:click={goCreate}>
         Create Wentu
-      </button>
-    </div>
+      </Button>
+    </Card>
 
     <!-- Join Section -->
-    <div class="card flex flex-col">
+    <Card class="flex flex-col">
       <h3 class="text-lg sm:text-xl font-bold text-accent mb-3 sm:mb-4">Join existing</h3>
       <p class="text-text-secondary text-sm sm:text-base mb-3 sm:mb-4">Enter a wentu code to vote.</p>
+      <!-- Plain input retained: Input primitive does not forward $$restProps, so aria-label cannot pass through. Tokens upgraded to match primitive styling. -->
       <input
-        class="input w-full mb-3 sm:mb-4"
+        class="w-full mb-3 sm:mb-4 px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base"
         type="text"
         placeholder="Enter wentu code"
         bind:value={slug}
@@ -58,10 +61,10 @@
       {#if error}
         <p class="text-error text-sm mb-3 sm:mb-4">{error}</p>
       {/if}
-      <button class="btn-primary w-full mt-auto" on:click={goView}>
+      <Button variant="primary" fullWidth class="mt-auto" on:click={goView}>
         Join
-      </button>
-    </div>
+      </Button>
+    </Card>
   </div>
 
   <div class="mt-8 sm:mt-12 text-center text-text-secondary text-xs sm:text-sm px-4">

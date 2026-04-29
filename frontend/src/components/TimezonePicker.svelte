@@ -25,7 +25,8 @@
     <Globe size={18} />
     Timezone
   </label>
-  <select class="input w-full" bind:value={selectedTimezone} on:change={handleChange}>
+  <!-- Plain select retained: Input primitive is for <input> only; select requires the `input` marker class so `select.input` CSS hook applies the dropdown chevron SVG. Tokens upgraded to match primitive styling. -->
+  <select class="input w-full px-2 sm:px-3 py-2 bg-surface-card border border-border-subtle rounded text-text-primary placeholder-text-secondary focus:border-focus-ring focus:outline-none text-sm sm:text-base" bind:value={selectedTimezone} on:change={handleChange}>
     {#each timezones as tz}
       <option value={tz.value}>{tz.label}</option>
     {/each}
