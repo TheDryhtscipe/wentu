@@ -39,6 +39,10 @@
   // Span-in-progress state for preferences mode
   let spanStartKey = null;
 
+  // Range mode: after a single-day commit (one click), the next click on a
+  // different day widens the range; a third click starts a fresh 1-day pick.
+  let pendingExtend = false;
+
   // Reactive maps for template reactivity (Svelte can't track dependencies inside function calls)
   $: orderByDateKey = new Map(
     selectedDates.map(d => [d.date || d.dateStart, d.order])
@@ -110,6 +114,9 @@
       endDate = nextEnd;
       lastSyncedStartKey = nextStart;
       lastSyncedEndKey = nextEnd;
+      // External range arrived (e.g. navigating back). Treat it as committed —
+      // the next click should start a new selection, not extend this one.
+      pendingExtend = false;
     }
   }
 
@@ -128,7 +135,9 @@
 
   function isInRange(day) {
     if (!startDate) return false;
-    const checkEnd = endDate || hoveredDate;
+    // While extending a single-day commit, the hover preview should win over
+    // the (degenerate) endDate so the user sees the prospective wider range.
+    const checkEnd = pendingExtend && hoveredDate ? hoveredDate : (endDate || hoveredDate);
     if (!checkEnd) return false;
     
     const date = new Date(year, month, day);
@@ -317,6 +326,7 @@
           start: start < end ? start : end,
           end: start < end ? end : start
         });
+        pendingExtend = false;
       }
     }
 
@@ -327,30 +337,34 @@
   }
 
   function applyClickSelection(key) {
-    if (!startDate) {
+    // Click 1 (or fresh restart): commit a single-day range immediately so
+    // single-day picks don't require a redundant second click. The
+    // pendingExtend flag marks that the next click on a *different* day
+    // should widen rather than restart.
+    if (!startDate || !pendingExtend) {
       startDate = key;
-      endDate = null;
-      hoveredDate = key;
-      return;
-    }
-
-    if (!endDate) {
       endDate = key;
-
-      // Emit the event with properly ordered dates
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      dispatch('daterange', {
-        start: start < end ? start : end,
-        end: start < end ? end : start
-      });
+      hoveredDate = key;
+      pendingExtend = true;
+      const d = parseKey(key);
+      dispatch('daterange', { start: d, end: d });
       return;
     }
 
-    // Reset for new selection
-    startDate = key;
-    endDate = null;
-    hoveredDate = key;
+    // Click 2 on the same day — no-op, range is already valid.
+    if (key === startDate) {
+      return;
+    }
+
+    // Click 2 on a different day — widen the existing single-day commit.
+    endDate = key;
+    pendingExtend = false;
+    const start = parseKey(startDate);
+    const end = parseKey(endDate);
+    dispatch('daterange', {
+      start: start < end ? start : end,
+      end: start < end ? end : start
+    });
   }
 
   function handleClick(day) {
@@ -414,6 +428,7 @@
     touchStartedSelection = false;
     interactionType = null;
     touchIdentifier = null;
+    pendingExtend = false;
     if (mode === 'preferences') {
       selectedDates = [];
       spanStartKey = null;
@@ -542,6 +557,7 @@
           start: start < end ? start : end,
           end: start < end ? end : start
         });
+        pendingExtend = false;
       } else if (!touchMoved && touchStartDay !== null) {
         // Simple tap - use applyClickSelection for consistent behavior with desktop clicks
         applyClickSelection(getDayKey(touchStartDay));

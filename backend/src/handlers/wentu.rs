@@ -58,9 +58,10 @@ pub async fn create_wentu(
         StatusCode::BAD_REQUEST
     })?;
 
-    // Additional date range validation
-    if req.date_range_start >= req.date_range_end {
-        tracing::warn!("Invalid date range: start must be before end");
+    // Additional date range validation. start == end is a valid single-day
+    // range (one ranking option, useful with time slots).
+    if req.date_range_start > req.date_range_end {
+        tracing::warn!("Invalid date range: start must not be after end");
         return Err(StatusCode::BAD_REQUEST);
     }
 
