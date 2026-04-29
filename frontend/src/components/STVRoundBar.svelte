@@ -65,12 +65,14 @@
             style="width: {widthPercent}%"
           ></div>
         </div>
-        <span class="text-xs sm:text-sm text-text-primary font-medium flex items-center gap-1 flex-shrink-0">
+        <span class="text-xs sm:text-sm text-text-primary font-medium flex items-center gap-1">
           {count} vote{count !== 1 ? 's' : ''}
           {#if isEliminated}
-            <XCircle size={14} class="text-error" />
+            <XCircle size={14} class="text-error" aria-hidden="true" />
+            <span class="sr-only">eliminated</span>
           {:else if reachedQuota}
-            <span class="text-success" aria-label="Reached quota">✓</span>
+            <span class="text-success" aria-hidden="true">✓</span>
+            <span class="sr-only">reached quota</span>
           {/if}
         </span>
       </div>
