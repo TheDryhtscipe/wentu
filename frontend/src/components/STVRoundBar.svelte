@@ -40,8 +40,40 @@
     {/if}
   </div>
 
-  <!-- Chart skeleton (Task C will populate) -->
-  <div class="relative">
-    <!-- rows -->
+  <!-- Chart area -->
+  <div class="relative space-y-1.5">
+    {#each sortedRows as { dateId, count } (dateId)}
+      {@const widthPercent = totalVoters > 0 ? (count / totalVoters) * 100 : 0}
+      {@const isEliminated = round.eliminated === dateId}
+      {@const reachedQuota = count >= effectiveQuota && effectiveQuota > 0}
+      {@const isWinnerRow = isFinalRound && dateId === winnerId}
+      {@const fillClass = isWinnerRow
+        ? 'bg-success'
+        : isEliminated
+          ? 'bg-error/70'
+          : 'bg-accent'}
+      <div
+        class="grid grid-cols-[minmax(0,7rem)_1fr_auto] items-center gap-2"
+        class:opacity-50={isEliminated}
+      >
+        <span class="text-xs sm:text-sm text-text-secondary truncate">
+          {findDateLabel(dateId)}
+        </span>
+        <div class="relative h-5 bg-dark-bg/60 rounded-sm overflow-hidden">
+          <div
+            class="absolute inset-y-0 left-0 rounded-sm {fillClass}"
+            style="width: {widthPercent}%"
+          ></div>
+        </div>
+        <span class="text-xs sm:text-sm text-text-primary font-medium flex items-center gap-1 flex-shrink-0">
+          {count} vote{count !== 1 ? 's' : ''}
+          {#if isEliminated}
+            <XCircle size={14} class="text-error" />
+          {:else if reachedQuota}
+            <span class="text-success" aria-label="Reached quota">✓</span>
+          {/if}
+        </span>
+      </div>
+    {/each}
   </div>
 </div>
