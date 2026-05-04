@@ -463,8 +463,10 @@
       !slotsToAddIds.has(p.id) && !slotsToRemoveIds.has(p.id)
     );
 
-    // Add ordered slots to the beginning (top of list)
-    preferences = [...orderedTimeSlots, ...preferences];
+    // Append ordered slots to the end of the list — each click adds the new
+    // date after previously ranked dates, matching the on-screen instruction
+    // ("Each click moves that date to the end of your list").
+    preferences = [...preferences, ...orderedTimeSlots];
 
     // Add removed slots to removedPreferences
     if (removedTimeSlots.length > 0) {
